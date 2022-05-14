@@ -1,32 +1,43 @@
 package handler
 
-import "github.com/gin-gonic/gin"
+import (
+	//"todo-app/pkg/service"
 
-func InitRoutes(mux *gin.Engine) {
-	auth := mux.Group("/auth")
+	"github.com/gin-gonic/gin"
+)
+
+type Handler struct {
+	//service *service.Service
+}
+
+func (h *Handler) InitRoutes() *gin.Engine { // Инициализация групп функций мультиплексора
+	mux := gin.New()
+
+	auth := mux.Group("/auth") // Группа аутентификации
 	{
-		auth.POST("/sign-up")
-		auth.POST("/sign-in")
+		auth.POST("/sign-up", signUp)
+		auth.POST("/sign-in", signIn)
 	}
 
-	api := mux.Group("/api")
+	api := mux.Group("/api") //Группа для взаимодействия с List
 	{
 		lists := api.Group("/lists")
 		{
-			lists.POST("/")
-			lists.GET("/")
-			lists.GET("/:id")
-			lists.PUT("/:id")
-			lists.DELETE("/:id")
+			lists.POST("/", createList)
+			lists.GET("/", getAllLists)
+			lists.GET("/:id", getListById)
+			lists.PUT("/:id", updateList)
+			lists.DELETE("/:id", deleteList)
 		}
 
 		items := api.Group(":id/items")
 		{
-			items.POST("/")
-			items.GET("/")
-			items.GET("/:item_id")
-			items.PUT("/:item_id")
-			items.DELETE("/:item_id")
+			items.POST("/", createItem)
+			items.GET("/", getAllItems)
+			items.GET("/:item_id", getItemById)
+			items.PUT("/:item_id", updateItem)
+			items.DELETE("/:item_id", deleteItem)
 		}
 	}
+	return mux
 }
