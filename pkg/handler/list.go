@@ -1,12 +1,15 @@
 package handler
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
+// Создание handler функций для работы List
 func createList(c *gin.Context) {
 
 }
 
-func getAllList(c *gin.Context) {
+func getAllLists(c *gin.Context) {
 
 }
 

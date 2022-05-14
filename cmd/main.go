@@ -1,13 +1,10 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"todo-app/pkg/handler"
 )
 
 func main() {
-	router := gin.Default()
-	handler.InitRoutes(router)
-	//router.GET("/", funcHandler)
-	router.Run(":8000")
-
+	mux := new(handler.Handler)
+	mux.InitRoutes().Run(":8000")
 }

@@ -6,7 +6,7 @@ func createItem(c *gin.Context) {
 
 }
 
-func getAllItem(c *gin.Context) {
+func getAllItems(c *gin.Context) {
 
 }
 
