@@ -6,6 +6,7 @@ import (
 
 func main() {
 	router := gin.Default()
+	handler.InitRoutes(router)
 	//router.GET("/", funcHandler)
 	router.Run(":8000")
 
