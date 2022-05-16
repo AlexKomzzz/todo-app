@@ -6,25 +6,37 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Создание handler функций для работы List
-func createList(c *gin.Context) {
+/*type Test struct {
+	Id string `json:"id"`
+}*/
 
+// Создание handler функций для работы List
+func (h *Handler) createList(c *gin.Context) {
+	/*var id Test
+	if err := c.BindJSON(&id); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"Id": id.Id,
+	})*/
 }
 
-func getAllLists(c *gin.Context) {
+func (h *Handler) getAllLists(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"Status": "Ok",
 	})
 }
 
-func getListById(c *gin.Context) {
+func (h *Handler) getListById(c *gin.Context) {
 
 }
 
-func updateList(c *gin.Context) {
+func (h *Handler) updateList(c *gin.Context) {
 
 }
 
-func deleteList(c *gin.Context) {
+func (h *Handler) deleteList(c *gin.Context) {
 
 }
