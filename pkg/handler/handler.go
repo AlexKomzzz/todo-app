@@ -19,28 +19,28 @@ func (h *Handler) InitRoutes() *gin.Engine { // Инициализация гр�
 
 	auth := mux.Group("/auth") // Группа аутентификации
 	{
-		auth.POST("/sign-up", signUp)
-		auth.POST("/sign-in", signIn)
+		auth.POST("/sign-up", h.signUp)
+		auth.POST("/sign-in", h.signIn)
 	}
 
 	api := mux.Group("/api") //Группа для взаимодействия с List
 	{
 		lists := api.Group("/lists")
 		{
-			lists.POST("/", createList)
-			lists.GET("/", getAllLists)
-			lists.GET("/:id", getListById)
-			lists.PUT("/:id", updateList)
-			lists.DELETE("/:id", deleteList)
+			lists.POST("/", h.createList)
+			lists.GET("/", h.getAllLists)
+			lists.GET("/:id", h.getListById)
+			lists.PUT("/:id", h.updateList)
+			lists.DELETE("/:id", h.deleteList)
 		}
 
 		items := api.Group(":id/items")
 		{
-			items.POST("/", createItem)
-			items.GET("/", getAllItems)
-			items.GET("/:item_id", getItemById)
-			items.PUT("/:item_id", updateItem)
-			items.DELETE("/:item_id", deleteItem)
+			items.POST("/", h.createItem)
+			items.GET("/", h.getAllItems)
+			items.GET("/:item_id", h.getItemById)
+			items.PUT("/:item_id", h.updateItem)
+			items.DELETE("/:item_id", h.deleteItem)
 		}
 	}
 	return mux
