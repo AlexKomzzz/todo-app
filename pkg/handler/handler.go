@@ -23,7 +23,7 @@ func (h *Handler) InitRoutes() *gin.Engine { // Инициализация гр�
 		auth.POST("/sign-in", h.signIn)
 	}
 
-	api := mux.Group("/api") //Группа для взаимодействия с List
+	api := mux.Group("/api", h.userIdentity) //Группа для взаимодействия с List
 	{
 		lists := api.Group("/lists")
 		{

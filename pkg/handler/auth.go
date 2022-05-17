@@ -25,16 +25,28 @@ func (h *Handler) signUp(c *gin.Context) { // Обработчик для рег
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"id": id,
 	})
-
-	// Test
-	/*c.JSON(http.StatusOK, gin.H{
-		"name":     input.Name,
-		"username": input.Username,
-		"password": input.Password,
-	})*/
-
 }
 
-func (h *Handler) signIn(c *gin.Context) { // Обработчик для аутентификации
+type signInInput struct { // Структура для идентификации
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
 
+func (h *Handler) signIn(c *gin.Context) { // Обработчик для аутентификации и получения токена
+	var input signInInput
+
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, fmt.Sprintf("invalid input body: %s", err.Error()))
+		return
+	}
+
+	token, err := h.services.Authorization.GenerateToken(input.Username, input.Password)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"token": token,
+	})
 }
