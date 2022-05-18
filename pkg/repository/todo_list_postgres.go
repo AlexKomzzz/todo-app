@@ -58,3 +58,21 @@ func (r *TodoListPostgres) GetById(userId, listId int) (todo.TodoList, error) {
 
 	return list, err
 }
+
+func (r *TodoListPostgres) DeleteById(userId, listId int) error {
+	query := fmt.Sprintf("DELETE FROM %s tl USING %s ul WHERE tl.id = ul.list_id AND ul.user_id = $1 AND ul.list_id = $2",
+		todoListsTable, usersListsTable)
+	_, err := r.db.Exec(query, userId, listId)
+
+	return err
+}
+
+func (r *TodoListPostgres) UpdateById(userId, listId int, list todo.TodoList) (todo.TodoList, error) {
+	var newList todo.TodoList
+
+	updateListQuery := fmt.Sprintf("UPDATE %s tl SET title = $3, description = $4 FROM %s ul WHERE tl.id = ul.list_id AND ul.user_id = $1 AND ul.list_id = $2 RETURNING tl.id, tl.title, tl.description",
+		todoListsTable, usersListsTable)
+	err := r.db.QueryRow(updateListQuery, userId, listId, list.Title, list.Description).Scan(&newList.Id, &newList.Title, &newList.Description)
+
+	return newList, err
+}
