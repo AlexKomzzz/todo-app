@@ -93,7 +93,7 @@ func (h *Handler) deleteList(c *gin.Context) {
 		return
 	}
 
-	list, err := h.services.TodoList.DeleteById(userId, id)
+	err = h.services.TodoList.DeleteById(userId, id)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
