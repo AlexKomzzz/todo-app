@@ -12,7 +12,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-const tokenTTL = 12 * time.Hour
+const tokenTTL = 30 * time.Hour
 
 type AuthService struct {
 	repo repository.Authorization
