@@ -2,6 +2,8 @@ package main
 
 import (
 	"os"
+	"os/signal"
+	"syscall"
 	"todo-app/pkg/handler"
 	"todo-app/pkg/repository"
 	"todo-app/pkg/service"
@@ -42,9 +44,24 @@ func main() {
 	services := service.NewService(repos)
 	handlers := handler.NewHandler(services)
 
-	if err := handlers.InitRoutes().Run(viper.GetString("port")); err != nil {
-		logrus.Fatalf("Error run web serv")
-		return
+	rsv := handlers.InitRoutes()
+	go func() {
+		if err := rsv.Run(viper.GetString("port")); err != nil {
+			logrus.Fatalf("Error run web serv")
+			return
+		}
+	}()
+
+	logrus.Print("TodoApp Started")
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+	<-quit
+
+	logrus.Print("TodoApp Stoped")
+
+	if err := db.Close(); err != nil {
+		logrus.Errorf("error occured on db connection close: %s", err.Error())
 	}
 }
 

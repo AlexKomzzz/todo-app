@@ -89,7 +89,7 @@ func (h *Handler) updateList(c *gin.Context) {
 		return
 	}
 
-	var input todo.TodoList
+	var input todo.UpdateListInput
 	if err := c.BindJSON(&input); err != nil { // парсим тело запроса в структуру List
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return

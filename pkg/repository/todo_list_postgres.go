@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"strings"
 	"todo-app"
 
 	"github.com/jmoiron/sqlx"
@@ -67,12 +68,32 @@ func (r *TodoListPostgres) DeleteById(userId, listId int) error {
 	return err
 }
 
-func (r *TodoListPostgres) UpdateById(userId, listId int, list todo.TodoList) (todo.TodoList, error) {
+func (r *TodoListPostgres) UpdateById(userId, listId int, list todo.UpdateListInput) (todo.TodoList, error) {
+	// Обновление записей должно происходить как только для поля title, так и только для поля description,
+	// так и для обоих полей одновременно. Для это реализуем следующее:
+	setValues := make([]string, 0)
+	args := make([]interface{}, 0)
+	argId := 1
+
+	if list.Title != nil {
+		setValues = append(setValues, fmt.Sprintf("title=$%d", argId))
+		args = append(args, *list.Title)
+		argId++
+	}
+	if list.Description != nil {
+		setValues = append(setValues, fmt.Sprintf("description=$%d", argId))
+		args = append(args, *list.Description)
+		argId++
+	}
+
+	setQuery := strings.Join(setValues, ", ")
+
 	var newList todo.TodoList
 
-	updateListQuery := fmt.Sprintf("UPDATE %s tl SET title = $3, description = $4 FROM %s ul WHERE tl.id = ul.list_id AND ul.user_id = $1 AND ul.list_id = $2 RETURNING tl.id, tl.title, tl.description",
-		todoListsTable, usersListsTable)
-	err := r.db.QueryRow(updateListQuery, userId, listId, list.Title, list.Description).Scan(&newList.Id, &newList.Title, &newList.Description)
+	updateListQuery := fmt.Sprintf("UPDATE %s tl SET %s FROM %s ul WHERE tl.id = ul.list_id AND ul.user_id = $%d AND ul.list_id = $%d RETURNING tl.id, tl.title, tl.description",
+		todoListsTable, setQuery, usersListsTable, argId, (argId + 1))
+	args = append(args, userId, listId)
+	err := r.db.QueryRow(updateListQuery, args...).Scan(&newList.Id, &newList.Title, &newList.Description)
 
 	return newList, err
 }
