@@ -3,7 +3,11 @@ package handler
 import (
 	"todo-app/pkg/service"
 
+	_ "todo-app/docs"
+
 	"github.com/gin-gonic/gin"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger" // gin-swagger middleware
 )
 
 type Handler struct {
@@ -16,6 +20,8 @@ func NewHandler(services *service.Service) *Handler {
 
 func (h *Handler) InitRoutes() *gin.Engine { // Инициализация групп функций мультиплексора
 	mux := gin.New()
+
+	mux.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	auth := mux.Group("/auth") // Группа аутентификации
 	{
@@ -40,11 +46,11 @@ func (h *Handler) InitRoutes() *gin.Engine { // Инициализация гр�
 			}
 		}
 
-		items := api.Group(":id/items")
+		items := api.Group("items")
 		{
-			items.GET("/:item_id", h.getItemById)
-			items.PUT("/:item_id", h.updateItem)
-			items.DELETE("/:item_id", h.deleteItem)
+			items.GET("/:id", h.getItemById)
+			items.PUT("/:id", h.updateItem)
+			items.DELETE("/:id", h.deleteItem)
 		}
 	}
 	return mux

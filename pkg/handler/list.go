@@ -9,7 +9,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Создание handler функций для работы List
+// @Summary Create todo List
+// @Security ApiKeyAuth
+// @Tags lists
+// @Description create todo List
+// @ID create-list
+// @Accept json
+// @Produce json
+// @Param input body todo.TodoList true "List info"
+// @Success 200 {integer} integer 1
+// @Failure 400,404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure default {object} errorResponse
+// @Router /api/lists [post]
 func (h *Handler) createList(c *gin.Context) {
 	userId, err := getUserId(c) // Определяем ID юзера по токену
 	if err != nil {
@@ -37,6 +49,18 @@ type getAllListsResponce struct { // Структура для использо�
 	Data []todo.TodoList `json:"data"`
 }
 
+// @Summary Get All Lists
+// @Security ApiKeyAuth
+// @Tags lists
+// @Description get all lists
+// @ID get-all-lists
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} getAllListsResponce
+// @Failure 400,404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure default {object} errorResponse
+// @Router /api/lists [get]
 func (h *Handler) getAllLists(c *gin.Context) {
 	userId, err := getUserId(c) // Определяем ID юзера по токену
 	if err != nil {
@@ -104,6 +128,19 @@ func (h *Handler) updateList(c *gin.Context) {
 	c.JSON(http.StatusOK, list)
 }
 
+// @Summary Delete todo List
+// @Security ApiKeyAuth
+// @Tags lists
+// @Descriprion gelete list by id
+// @ID delete-list
+// @Accept json
+// @Produce json
+// @Param id path int true "List Id"
+// @Success 200 {integer} integer 1
+// @Failure 400,404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure default {object} errorResponse
+// @Router /api/lists/{id} [delete]
 func (h *Handler) deleteList(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
