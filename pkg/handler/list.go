@@ -1,13 +1,19 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 	"todo-app"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
+	"github.com/sirupsen/logrus"
 )
+
+var duration time.Duration = 3600 * time.Second
 
 // @Summary Create todo List
 // @Security ApiKeyAuth
@@ -62,20 +68,42 @@ type getAllListsResponce struct { // Структура для использо�
 // @Failure default {object} errorResponse
 // @Router /api/lists [get]
 func (h *Handler) getAllLists(c *gin.Context) {
-	userId, err := getUserId(c) // Определяем ID юзера по токену
-	if err != nil {
-		return
-	}
+	lists := make([]todo.TodoList, 0)
+	val, err := h.redisClient.Get(h.ctx, "lists").Result() // Проверяем существует ли ключ "lists" в redis
+	if err == redis.Nil {                                  // Если ключа не существует, вытаскиваем данные из postgres и кэшируем в redis
 
-	lists, err := h.services.TodoList.GetAll(userId) // вытаскиваем списки из БД для определенного пользователя
-	if err != nil {
+		logrus.Print("Request to Postgres")
+
+		userId, err := getUserId(c) // Определяем ID юзера по токену
+		if err != nil {
+			return
+		}
+
+		lists, err = h.services.TodoList.GetAll(userId) // вытаскиваем списки из БД для определенного пользователя
+		if err != nil {
+			newErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		data, err := json.Marshal(lists) // декодируем JSON в слайз байт для дальнейшей записи в redis
+		if err != nil {
+			newErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		h.redisClient.Set(h.ctx, "lists", string(data), duration) // Создание записи в redis с ключом "lists"
+
+	} else if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
+	} else { // Если в redis есть ключ...
+		logrus.Print("Request to Redis")
+		json.Unmarshal([]byte(val), &lists) // забираем от туда данные и отправляем
 	}
-
 	c.JSON(http.StatusOK, getAllListsResponce{
 		Data: lists,
 	})
+
 }
 
 func (h *Handler) getListById(c *gin.Context) {
