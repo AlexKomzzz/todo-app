@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -8,6 +9,7 @@ import (
 	"todo-app/pkg/repository"
 	"todo-app/pkg/service"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
@@ -54,9 +56,19 @@ func main() {
 		return
 	}
 
+	ctx := context.Background() // Контекст
+
+	redisClient := redis.NewClient(&redis.Options{ // Подключение к серверу Redis
+		Addr:     viper.GetString("redis.addr"),
+		Password: viper.GetString("redis.password"),
+		DB:       viper.GetInt("redis.db"),
+	})
+	status := redisClient.Ping(ctx)
+	logrus.Print("Connect status server Redis: ", status)
+
 	repos := repository.NewRepository(db) // Создание зависимостей
 	services := service.NewService(repos)
-	handlers := handler.NewHandler(services)
+	handlers := handler.NewHandler(services, ctx, redisClient)
 
 	rsv := handlers.InitRoutes()
 	go func() {
