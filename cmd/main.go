@@ -65,6 +65,11 @@ func main() {
 	})
 	status := redisClient.Ping(ctx)
 	logrus.Print("Connect status server Redis: ", status)
+	err = redisClient.FlushAll(ctx).Err() // Очистить Redis
+	if err != nil {
+		logrus.Fatalf("failed to flush Redis: %s", err.Error())
+		return
+	}
 
 	repos := repository.NewRepository(db) // Создание зависимостей
 	services := service.NewService(repos)

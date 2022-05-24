@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var duration time.Duration = 3600 * time.Second
+var duration time.Duration = 3600 * time.Second // тайм-айт ключа в кэше Redis
 
 // @Summary Create todo List
 // @Security ApiKeyAuth
@@ -46,6 +46,13 @@ func (h *Handler) createList(c *gin.Context) {
 		return
 	}
 
+	// Удалим список lists из кэша redis
+	err = h.redisClient.HDel(h.ctx, fmt.Sprintf("user:%d", userId), "lists").Err()
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	c.JSON(http.StatusOK, map[string]interface{}{ // Отвечаем ОК, id list
 		"id": id,
 	})
@@ -69,15 +76,16 @@ type getAllListsResponce struct { // Структура для использо�
 // @Router /api/lists [get]
 func (h *Handler) getAllLists(c *gin.Context) {
 	lists := make([]todo.TodoList, 0)
-	val, err := h.redisClient.Get(h.ctx, "lists").Result() // Проверяем существует ли ключ "lists" в redis
-	if err == redis.Nil {                                  // Если ключа не существует, вытаскиваем данные из postgres и кэшируем в redis
+
+	userId, err := getUserId(c) // Определяем ID юзера по токену
+	if err != nil {
+		return
+	}
+
+	val, err := h.redisClient.HGet(h.ctx, fmt.Sprintf("user:%d", userId), "lists").Result() // Проверяем существует ли ключ "lists_userId" в кэше redis
+	if err == redis.Nil {                                                                   // Если ключа не существует, вытаскиваем данные из postgres и кэшируем в redis
 
 		logrus.Print("Request to Postgres")
-
-		userId, err := getUserId(c) // Определяем ID юзера по токену
-		if err != nil {
-			return
-		}
 
 		lists, err = h.services.TodoList.GetAll(userId) // вытаскиваем списки из БД для определенного пользователя
 		if err != nil {
@@ -91,7 +99,18 @@ func (h *Handler) getAllLists(c *gin.Context) {
 			return
 		}
 
-		h.redisClient.Set(h.ctx, "lists", string(data), duration) // Создание записи в redis с ключом "lists"
+		// Добавим list в кэш Redis. Используем команду конвейер (Pipeline) для одновременного выполнения команд записи в кэш и установление тайм-аута ключа
+		pipe := h.redisClient.Pipeline() // создание конвейра
+
+		pipe.HSetNX(h.ctx, fmt.Sprintf("user:%d", userId), "lists", string(data)) // Кешируем lists в Redis
+
+		pipe.Expire(h.ctx, fmt.Sprintf("user:%d", userId), duration) // Устанавливаем тайм-айт для ключа
+
+		_, err = pipe.Exec(h.ctx) // Выполняем команды конвейера
+		if err != nil {
+			newErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
 
 	} else if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
@@ -107,6 +126,8 @@ func (h *Handler) getAllLists(c *gin.Context) {
 }
 
 func (h *Handler) getListById(c *gin.Context) {
+	var list todo.TodoList
+
 	userId, err := getUserId(c)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, "ivalid user id")
@@ -119,10 +140,44 @@ func (h *Handler) getListById(c *gin.Context) {
 		return
 	}
 
-	list, err := h.services.TodoList.GetById(userId, id) // вытаскиваем из БД список по id списка и пользователя
-	if err != nil {
+	// Проверяем существует ли ключ "hlists_userId" с полем list:id в хэш-таблице redis
+	val, err := h.redisClient.HGet(h.ctx, fmt.Sprintf("user:%d", userId), fmt.Sprintf("list:%d", id)).Result()
+
+	if err == redis.Nil { // Если ключа не существует, вытаскиваем данные из postgres и кэшируем в redis
+
+		logrus.Print("Request to Postgres")
+
+		list, err = h.services.TodoList.GetById(userId, id) // вытаскиваем из БД список по id списка и пользователя
+		if err != nil {
+			newErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		data, err := json.Marshal(list) // декодируем list в слайз байт для дальнейшей записи в redis
+		if err != nil {
+			newErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		// Добавим list в кэш Redis. Используем команду конвейер (Pipeline) для одновременного выполнения команд записи в кэш и установление тайм-аута ключа
+		pipe := h.redisClient.Pipeline() // создание конвейра
+
+		pipe.HSetNX(h.ctx, fmt.Sprintf("user:%d", userId), fmt.Sprintf("list:%d", id), string(data)) // Кешируем list в Redis
+
+		pipe.Expire(h.ctx, fmt.Sprintf("user:%d", userId), duration) // Устанавливаем тайм-айт для ключа
+
+		_, err = pipe.Exec(h.ctx) // Выполняем команды конвейера
+		if err != nil {
+			newErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+	} else if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
+	} else { // Если в redis есть ключ...
+		logrus.Print("Request to Redis")
+		json.Unmarshal([]byte(val), &list) // забираем от туда данные и отправляем
 	}
 
 	c.JSON(http.StatusOK, list)
@@ -148,6 +203,13 @@ func (h *Handler) updateList(c *gin.Context) {
 	}
 
 	list, err := h.services.TodoList.UpdateById(userId, id, input)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Удаляем все данные из кэша Redis, т.к. изменения могли коснуться любого поля ключа user:userId
+	err = h.redisClient.Del(h.ctx, fmt.Sprintf("user:%d", userId)).Err()
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -183,6 +245,13 @@ func (h *Handler) deleteList(c *gin.Context) {
 	}
 
 	err = h.services.TodoList.DeleteById(userId, id) // Удаляем из таблицы Списков и связывающей таблицы список по id
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Удаляем все данные из кэша Redis, т.к. изменения могли коснуться любого поля ключа user:userId
+	err = h.redisClient.Del(h.ctx, fmt.Sprintf("user:%d", userId)).Err()
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
