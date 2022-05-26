@@ -9,7 +9,6 @@ import (
 	"todo-app/pkg/repository"
 	"todo-app/pkg/service"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
@@ -58,22 +57,20 @@ func main() {
 
 	ctx := context.Background() // Контекст
 
-	redisClient := redis.NewClient(&redis.Options{ // Подключение к серверу Redis
+	redisClient, err := repository.NewRedisCache(ctx, repository.ConfigRedis{ // Подключение к серверу Redis
 		Addr:     viper.GetString("redis.addr"),
 		Password: viper.GetString("redis.password"),
 		DB:       viper.GetInt("redis.db"),
 	})
-	status := redisClient.Ping(ctx)
-	logrus.Print("Connect status server Redis: ", status)
-	err = redisClient.FlushAll(ctx).Err() // Очистить Redis
+
 	if err != nil {
-		logrus.Fatalf("failed to flush Redis: %s", err.Error())
+		logrus.Fatalf("failed to initialize Redis: %s", err.Error())
 		return
 	}
 
-	repos := repository.NewRepository(db) // Создание зависимостей
+	repos := repository.NewRepository(db, ctx, redisClient) // Создание зависимостей
 	services := service.NewService(repos)
-	handlers := handler.NewHandler(services, ctx, redisClient)
+	handlers := handler.NewHandler(services)
 
 	rsv := handlers.InitRoutes()
 	go func() {
