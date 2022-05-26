@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"todo-app"
@@ -38,7 +37,7 @@ func (h *Handler) createItem(c *gin.Context) {
 	}
 
 	// Удаляем список items:listId
-	err = h.redisClient.HDel(h.ctx, fmt.Sprintf("user:%d", userId), fmt.Sprintf("items:list%d", listId)).Err()
+	err = h.services.TodoItemCach.HDelete(userId, listId)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -65,7 +64,7 @@ func (h *Handler) getAllItems(c *gin.Context) {
 	var items []todo.TodoItem
 
 	// Ищем в кэше ключ items:userId:listId, если его нет, то отправляемся к БД, если есть, то достаем и отправляем
-	val, err := h.redisClient.HGet(h.ctx, fmt.Sprintf("user:%d", userId), fmt.Sprintf("items:list%d", listId)).Result()
+	val, err := h.services.TodoItemCach.HGet(userId, listId, -1)
 	if err == redis.Nil { // Если в кэше нет  items, берем из БД
 
 		logrus.Print("Request to Postgres")
@@ -83,13 +82,7 @@ func (h *Handler) getAllItems(c *gin.Context) {
 		}
 
 		// Добавим items в кэш Redis. Используем команду конвейер (Pipeline) для одновременного выполнения команд записи в кэш и установление тайм-аута ключа
-		pipe := h.redisClient.Pipeline() // создание конвейра
-
-		pipe.HSetNX(h.ctx, fmt.Sprintf("user:%d", userId), fmt.Sprintf("items:list%d", listId), string(data)) // Кешируем lists в Redis
-
-		pipe.Expire(h.ctx, fmt.Sprintf("user:%d", userId), duration) // Устанавливаем тайм-айт для ключа
-
-		_, err = pipe.Exec(h.ctx) // Выполняем команды конвейера
+		err = h.services.TodoItemCach.HSet(userId, listId, -1, string(data))
 		if err != nil {
 			newErrorResponse(c, http.StatusInternalServerError, err.Error())
 			return
@@ -121,7 +114,7 @@ func (h *Handler) getItemById(c *gin.Context) {
 	var item todo.TodoItem
 
 	// Проверяем нахождение hlists:'usersId'U поля item:'id'
-	val, err := h.redisClient.HGet(h.ctx, fmt.Sprintf("user:%d", userId), fmt.Sprintf("item:%d", itemId)).Result()
+	val, err := h.services.TodoItemCach.HGet(userId, -1, itemId)
 	if err == redis.Nil {
 
 		logrus.Print("Request to Postgres")
@@ -138,14 +131,8 @@ func (h *Handler) getItemById(c *gin.Context) {
 			return
 		}
 
-		// Добавим item в кэш Redis. Используем команду конвейер (Pipeline) для одновременного выполнения команд записи в кэш и установление тайм-аута ключа
-		pipe := h.redisClient.Pipeline() // создание конвейра
-
-		pipe.HSetNX(h.ctx, fmt.Sprintf("user:%d", userId), fmt.Sprintf("item:%d", itemId), string(data)) // Кешируем lists в Redis
-
-		pipe.Expire(h.ctx, fmt.Sprintf("user:%d", userId), duration) // Устанавливаем тайм-айт для ключа
-
-		_, err = pipe.Exec(h.ctx) // Выполняем команды конвейера
+		// Добавим item в кэш Redis.
+		err = h.services.TodoItemCach.HSet(userId, -1, itemId, string(data))
 		if err != nil {
 			newErrorResponse(c, http.StatusInternalServerError, err.Error())
 			return
@@ -186,7 +173,7 @@ func (h *Handler) updateItem(c *gin.Context) {
 	}
 
 	// Удаляем все данные из кэша Redis, т.к. у нас нет listId для удаления item:id
-	err = h.redisClient.Del(h.ctx, fmt.Sprintf("user:%d", userId)).Err()
+	err = h.services.TodoItemCach.Delete(userId)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -215,7 +202,7 @@ func (h *Handler) deleteItem(c *gin.Context) {
 	}
 
 	// Удаляем все данные из кэша Redis, т.к. у нас нет listId для удаления item:id
-	err = h.redisClient.Del(h.ctx, fmt.Sprintf("user:%d", userId)).Err()
+	err = h.services.TodoItemCach.Delete(userId)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

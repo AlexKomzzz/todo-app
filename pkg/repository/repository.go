@@ -1,8 +1,10 @@
 package repository
 
 import (
+	"context"
 	"todo-app"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -27,17 +29,35 @@ type TodoItem interface {
 	Update(userId, itemId int, input todo.UpdateItemInput) error
 }
 
+type TodoListCach interface {
+	HGet(userId, listId int) (string, error)
+	HSet(userId, listId int, data string) error
+	HDelete(userId int) error
+	Delete(userId int) error
+}
+
+type TodoItemCach interface {
+	HGet(userId, listId, itemId int) (string, error)
+	HSet(userId, listId, itemId int, data string) error
+	HDelete(userId, listId int) error
+	Delete(userId int) error
+}
+
 type Repository struct {
 	Authorization
 	TodoList
 	TodoItem
+	TodoListCach
+	TodoItemCach
 }
 
-func NewRepository(db *sqlx.DB) *Repository {
+func NewRepository(db *sqlx.DB, ctx context.Context, redisClient *redis.Client) *Repository {
 	return &Repository{
 		Authorization: NewAuthPostgres(db),
 		TodoList:      NewTodoListPostgres(db),
 		TodoItem:      NewTodoItemPostgres(db),
+		TodoListCach:  NewTodoListRedis(ctx, redisClient),
+		TodoItemCach:  NewTodoItemRedis(ctx, redisClient),
 	}
 
 }

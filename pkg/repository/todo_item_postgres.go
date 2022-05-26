@@ -13,7 +13,9 @@ type TodoItemPostgres struct {
 }
 
 func NewTodoItemPostgres(db *sqlx.DB) *TodoItemPostgres {
-	return &TodoItemPostgres{db: db}
+	return &TodoItemPostgres{
+		db: db,
+	}
 }
 
 func (r *TodoItemPostgres) Create(listId int, item todo.TodoItem) (int, error) {
