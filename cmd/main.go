@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -9,6 +8,7 @@ import (
 	"todo-app/pkg/repository"
 	"todo-app/pkg/service"
 
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
@@ -31,6 +31,8 @@ import (
 
 func main() {
 	logrus.SetFormatter(new(logrus.JSONFormatter)) // Установка логирования в формат JSON
+
+	context := &gin.Context{} // Контекст
 
 	if err := initConfig(); err != nil { //Инициализируем конфигурации
 		logrus.Fatalf("error initializing configs: %s", err.Error())
@@ -55,9 +57,7 @@ func main() {
 		return
 	}
 
-	ctx := context.Background() // Контекст
-
-	redisClient, err := repository.NewRedisCache(ctx, repository.ConfigRedis{ // Подключение к серверу Redis
+	redisClient, err := repository.NewRedisCache(context, repository.ConfigRedis{ // Подключение к серверу Redis
 		Addr:     viper.GetString("redis.addr"),
 		Password: viper.GetString("redis.password"),
 		DB:       viper.GetInt("redis.db"),
@@ -68,7 +68,7 @@ func main() {
 		return
 	}
 
-	repos := repository.NewRepository(db, ctx, redisClient) // Создание зависимостей
+	repos := repository.NewRepository(db, context, redisClient) // Создание зависимостей
 	services := service.NewService(repos)
 	handlers := handler.NewHandler(services)
 

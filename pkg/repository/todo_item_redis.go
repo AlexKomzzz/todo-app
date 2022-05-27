@@ -1,21 +1,21 @@
 package repository
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 )
 
 type TodoItemRedis struct {
-	ctx         context.Context
+	context     *gin.Context
 	redisClient *redis.Client
 }
 
-func NewTodoItemRedis(ctx context.Context, redisClient *redis.Client) *TodoItemRedis {
+func NewTodoItemRedis(context *gin.Context, redisClient *redis.Client) *TodoItemRedis {
 	return &TodoItemRedis{
-		ctx:         ctx,
+		context:     context,
 		redisClient: redisClient,
 	}
 }
@@ -26,9 +26,9 @@ func (r *TodoItemRedis) HGet(userId, listId, itemId int) (string, error) {
 	var err error
 
 	if itemId < 0 && listId >= 0 {
-		val, err = r.redisClient.HGet(r.ctx, fmt.Sprintf("user:%d", userId), fmt.Sprintf("items:list%d", listId)).Result()
+		val, err = r.redisClient.HGet(r.context, fmt.Sprintf("user:%d", userId), fmt.Sprintf("items:list%d", listId)).Result()
 	} else if itemId >= 0 && listId < 0 {
-		val, err = r.redisClient.HGet(r.ctx, fmt.Sprintf("user:%d", userId), fmt.Sprintf("item:%d", itemId)).Result()
+		val, err = r.redisClient.HGet(r.context, fmt.Sprintf("user:%d", userId), fmt.Sprintf("item:%d", itemId)).Result()
 	} else {
 		err = errors.New("invalide func HSet")
 		return "", err
@@ -44,25 +44,25 @@ func (r *TodoItemRedis) HSet(userId, listId, itemId int, data string) error {
 	pipe := r.redisClient.Pipeline() // создание конвейра
 
 	if itemId < 0 && listId >= 0 {
-		pipe.HSetNX(r.ctx, fmt.Sprintf("user:%d", userId), fmt.Sprintf("items:list%d", listId), data) // Кешируем lists в Redis
+		pipe.HSetNX(r.context, fmt.Sprintf("user:%d", userId), fmt.Sprintf("items:list%d", listId), data) // Кешируем lists в Redis
 	} else if itemId >= 0 && listId < 0 {
-		pipe.HSetNX(r.ctx, fmt.Sprintf("user:%d", userId), fmt.Sprintf("item:%d", itemId), data)
+		pipe.HSetNX(r.context, fmt.Sprintf("user:%d", userId), fmt.Sprintf("item:%d", itemId), data)
 	} else {
 		err := errors.New("invalide func HSet")
 		return err
 	}
-	pipe.Expire(r.ctx, fmt.Sprintf("user:%d", userId), duration) // Устанавливаем тайм-айт для ключа
-	_, err := pipe.Exec(r.ctx)                                   // Выполняем команды конвейера
+	pipe.Expire(r.context, fmt.Sprintf("user:%d", userId), duration) // Устанавливаем тайм-айт для ключа
+	_, err := pipe.Exec(r.context)                                   // Выполняем команды конвейера
 
 	return err
 }
 
 func (r *TodoItemRedis) HDelete(userId, listId int) error {
-	err := r.redisClient.HDel(r.ctx, fmt.Sprintf("user:%d", userId), fmt.Sprintf("items:list%d", listId)).Err()
+	err := r.redisClient.HDel(r.context, fmt.Sprintf("user:%d", userId), fmt.Sprintf("items:list%d", listId)).Err()
 	return err
 }
 
 func (r *TodoItemRedis) Delete(userId int) error {
-	err := r.redisClient.Del(r.ctx, fmt.Sprintf("user:%d", userId)).Err()
+	err := r.redisClient.Del(r.context, fmt.Sprintf("user:%d", userId)).Err()
 	return err
 }

@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"context"
 	"todo-app"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 )
@@ -51,13 +51,13 @@ type Repository struct {
 	TodoItemCach
 }
 
-func NewRepository(db *sqlx.DB, ctx context.Context, redisClient *redis.Client) *Repository {
+func NewRepository(db *sqlx.DB, context *gin.Context, redisClient *redis.Client) *Repository {
 	return &Repository{
 		Authorization: NewAuthPostgres(db),
 		TodoList:      NewTodoListPostgres(db),
 		TodoItem:      NewTodoItemPostgres(db),
-		TodoListCach:  NewTodoListRedis(ctx, redisClient),
-		TodoItemCach:  NewTodoItemRedis(ctx, redisClient),
+		TodoListCach:  NewTodoListRedis(context, redisClient),
+		TodoItemCach:  NewTodoItemRedis(context, redisClient),
 	}
 
 }

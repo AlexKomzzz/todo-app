@@ -18,8 +18,7 @@
 package repository
 
 import (
-	"context"
-
+	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/sirupsen/logrus"
 )
@@ -30,18 +29,18 @@ type ConfigRedis struct {
 	DB       int
 }
 
-func NewRedisCache(ctx context.Context, cfg ConfigRedis) (*redis.Client, error) {
+func NewRedisCache(context *gin.Context, cfg ConfigRedis) (*redis.Client, error) {
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     cfg.Addr,
 		Password: cfg.Password,
 		DB:       cfg.DB,
 	})
 
-	status := redisClient.Ping(ctx)
+	status := redisClient.Ping(context)
 
 	logrus.Print("Connect status server Redis: ", status)
 
-	redisClient.FlushAll(ctx) // Очистить Redis
+	redisClient.FlushAll(context) // Очистить Redis
 
 	err := status.Err()
 

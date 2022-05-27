@@ -19,12 +19,13 @@ func NewTodoListPostgres(db *sqlx.DB) *TodoListPostgres {
 }
 
 func (r *TodoListPostgres) Create(userId int, list todo.TodoList) (int, error) {
-	tx, err := r.db.Begin()
+	tx, err := r.db.Begin() // запускаем транзакцию
 	if err != nil {
 		return 0, err
 	}
 
 	var id int
+	// Первой командой добавляем title и description, полученные от пользователя в таблицу с постами и получаем id нового поста
 	createListQuery := fmt.Sprintf("INSERT INTO %s (title, description) VALUES ($1, $2) RETURNING id", todoListsTable)
 	row := tx.QueryRow(createListQuery, list.Title, list.Description)
 	if err := row.Scan(&id); err != nil {
@@ -32,6 +33,7 @@ func (r *TodoListPostgres) Create(userId int, list todo.TodoList) (int, error) {
 		return 0, err
 	}
 
+	// Второй командой создаем зависимости пользователя и созданного поста
 	createUsersListQuery := fmt.Sprintf("INSERT INTO %s (user_id, list_id) VALUES ($1, $2)", usersListsTable)
 	_, err = tx.Exec(createUsersListQuery, userId, id)
 	if err != nil {
@@ -39,7 +41,7 @@ func (r *TodoListPostgres) Create(userId int, list todo.TodoList) (int, error) {
 		return 0, err
 	}
 
-	return id, tx.Commit()
+	return id, tx.Commit() // Обязательно коммитим транзакцию
 }
 
 func (r *TodoListPostgres) GetAll(userId int) ([]todo.TodoList, error) { // Создаем слайс спизков определенного user`а

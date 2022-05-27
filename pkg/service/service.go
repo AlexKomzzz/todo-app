@@ -5,6 +5,9 @@ import (
 	"todo-app/pkg/repository"
 )
 
+// Создание mock интерфейсов в папке mocks
+//go:generate mockgen -source=service.go -destination=mocks/mock.go
+
 type Authorization interface {
 	CreateUser(user todo.User) (int, error)
 	GenerateToken(username, password string) (string, error)
