@@ -2,18 +2,18 @@
 
 
 ### Prerequisites
-- go 1.17
+- go 1.18
 - docker & docker-compose
 - [golangci-lint](https://github.com/golangci/golangci-lint) (<i>optional</i>, used to run code checks)
 - [swag](https://github.com/swaggo/swag) (<i>optional</i>, used to re-generate swagger documentation)
 
 Create .env file in root directory and add following values:
 ```dotenv
-DB_PASSWORD= <your password>
+DB_PASSWORD=<your password>
 
-SOLT=<random string>
+SOLT='<random string>'
 
-JWT_SECRET=<random string>
+JWT_SECRET='<random string>'
 ```
 
 Create config.yml file in root directory and add following values:
