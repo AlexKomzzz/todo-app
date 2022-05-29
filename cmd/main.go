@@ -94,7 +94,8 @@ func main() {
 }
 
 func initConfig() error { //Инициализация конфигураций
-	viper.AddConfigPath("configs")
-	viper.SetConfigName("config")
+	//viper.AddConfigPath("configs")
+	//viper.SetConfigName("config")
+	viper.SetConfigFile("config.yml")
 	return viper.ReadInConfig()
 }

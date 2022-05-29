@@ -1,12 +1,6 @@
-# todo-app
-# Creatly LMS [Backend Application] ![GO][go-badge]
+# REST API Для Создания TODO Списков на Go  ![GO][go-badge]
 
-[go-badge]: https://img.shields.io/github/go-mod/go-version/p12s/furniture-store?style=plastic
-[go-url]: https://github.com/p12s/furniture-store/blob/master/go.mod
 
-Learn More about Creatly [here](https://zhashkevych.notion.site/About-Creatly-Creaty-8c68a310ec2347fca80ba919692fa568)
-
-## Build & Run (Locally)
 ### Prerequisites
 - go 1.17
 - docker & docker-compose
@@ -15,37 +9,28 @@ Learn More about Creatly [here](https://zhashkevych.notion.site/About-Creatly-Cr
 
 Create .env file in root directory and add following values:
 ```dotenv
-APP_ENV=local
+DB_PASSWORD= <your password>
 
-MONGO_URI=mongodb://mongodb:27017
-MONGO_USER=admin
-MONGO_PASS=qwerty
+SOLT=<random string>
 
-PASSWORD_SALT=<random string>
-JWT_SIGNING_KEY=<random string>
+JWT_SECRET=<random string>
 
-SENDPULSE_LISTID=
-SENDPULSE_ID=
-SENDPULSE_SECRET=
 
-HTTP_HOST=localhost
 
-FONDY_MERCHANT_ID=1396424
-FONDY_MERCHANT_PASS=test
-PAYMENT_CALLBACK_URL=<host>/api/v1/callback/fondy
-PAYMENT_REDIRECT_URL=https://example.com/
+Create config.yml file in root directory and add following values:
+```dotenv
+*******EXEMPLED********
+port: ":8000"
 
-SMTP_PASSWORD=<password>
+db:
+  username: "postgres"
+  password: "qwerty"
+  host: "localhost"
+  port: "5432"
+  dbname: "postgres"
+  sslmode: "disable"
 
-STORAGE_ENDPOINT=
-STORAGE_BUCKET=
-STORAGE_ACCESS_KEY=
-STORAGE_SECRET_KEY=
-
-CLOUDFLARE_API_KEY=
-CLOUDFLARE_EMAIL=
-CLOUDFLARE_ZONE_EMAIL=
-CLOUDFLARE_CNAME_TARGET=
-```
-
-Use `make run` to build&run project, `make lint` to check code with linter.
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: "0"
