@@ -1,4 +1,4 @@
-# REST API Для Создания TODO Списков на Go  ![GO][go-badge]
+# REST API Для Создания TODO Списков на Go v. 1.18
 
 
 ### Prerequisites
@@ -14,8 +14,7 @@ DB_PASSWORD= <your password>
 SOLT=<random string>
 
 JWT_SECRET=<random string>
-
-
+```
 
 Create config.yml file in root directory and add following values:
 ```dotenv
@@ -34,3 +33,4 @@ redis:
   addr: "localhost:6379"
   password: ""
   db: "0"
+```
