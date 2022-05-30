@@ -1,0 +1,19 @@
+version: ''
+
+services:
+  go:
+    build: ./
+    ports:
+      -8080:8080
+    depends_on:
+      - pgdb
+      - redis
+    
+
+  pgdb:
+    image: postgres:lates
+    environment:
+      - POSTGRES_PASSWORD=value
+
+
+  redis:
