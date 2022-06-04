@@ -34,3 +34,21 @@ redis:
   password: ""
   db: "0"
 ```
+
+Запустить миграции
+
+  $ migrate -path ./schema -database 'postgres://postgres:qwerty@localhost:5432/postgres?sslmode=disable' up
+
+# Docker
+
+Запустить контейнер Postgres:
+
+  $ docker run --name db -dp 5432:5432 -e POSTGRES_PASSWORD='qwerty' --rm -v roach:/var/lib/postgresql/data --network mynet postgres
+
+Запустить контейнер Redis:
+
+  $ docker run --name redis --rm --network mynet -dp 6379:6379 redis
+
+Запустить контейнер API:
+
+  $ docker run -it -dp 8080:8080 --network mynet --name apidb -e DB_PASSWORD='qwerty' api

@@ -1,13 +1,20 @@
-FROM go:1.18
+# syntax=docker/dockerfile:1
 
-COPY . /var/todo-app
+FROM golang:1.18
 
-WORKDIR /var/todo-app
+WORKDIR /todo-app
+
+COPY go.mod ./
+COPY go.sum ./
+
+RUN go mod download
+
+COPY ./ ./
+
+RUN go build -o ./bin/main cmd/*.go
 
 EXPOSE 8080
 
-RUN go mod download && go mod verify
+CMD ["./bin/main"]
 
-RUN go build cmd/*.go
-
-CMD ["./main"]
+#migrate -path ./schema -database 'postgres://postgres:qwerty@localhost:5432/postgres?sslmode=disable' up
