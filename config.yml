@@ -9,6 +9,6 @@ db:
   sslmode: "disable"
 
 redis:
-  addr: "0.0.0.0:6379"
+  addr: "redis:6379"
   password: ""
   db: "0"

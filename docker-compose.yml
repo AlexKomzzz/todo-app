@@ -1,19 +1,39 @@
-version: ''
+version: '3.8'
 
 services:
-  go:
-    build: ./
-    ports:
-      -8080:8080
+  api:
     depends_on:
-      - pgdb
+      - db
       - redis
-    
-
-  pgdb:
-    image: postgres:lates
+    build:
+      context: .
+      dockerfile: Dockerfile.multi
+    container_name: apidb
+    ports:
+      - 8000:8000
     environment:
-      - POSTGRES_PASSWORD=value
-
+      - DB_PASSWORD=qwerty
+    deploy:
+      restart_policy:
+        condition: on-failure
+    
+  db:
+    image: postgres:latest
+    restart: always
+    container_name: db
+    ports:
+      - 5432:5432
+    volumes:
+      - todo:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-qwerty}
 
   redis:
+    image: redis:latest
+    restart: always
+    container_name: redis
+    ports:
+      - 6379:6379
+
+volumes:
+  todo:
