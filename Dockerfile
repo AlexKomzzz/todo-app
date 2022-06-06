@@ -16,5 +16,3 @@ RUN go build -o ./bin/main cmd/*.go
 EXPOSE 8000
 
 CMD ["./bin/main"]
-
-#migrate -path ./schema -database 'postgres://postgres:qwerty@localhost:5432/postgres?sslmode=disable' up
