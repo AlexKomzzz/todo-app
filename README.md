@@ -24,13 +24,13 @@ port: ":8000"
 db:
   username: "postgres"
   password: "qwerty"
-  host: "localhost"
+  host: "localhost" or "db"
   port: "5432"
   dbname: "postgres"
   sslmode: "disable"
 
 redis:
-  addr: "localhost:6379"
+  addr: "localhost:6379" or "redis:6379"
   password: ""
   db: "0"
 ```
