@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 	"todo-app"
 	"todo-app/pkg/repository"
@@ -13,6 +12,9 @@ import (
 )
 
 const tokenTTL = 30 * time.Hour
+
+const JWT_SECRET = "rkjk#4#%35FSFJlja#4353KSFjH"
+const SOLT = "hjqrhjqw124617ajfhajs"
 
 type AuthService struct {
 	repo repository.Authorization
@@ -46,7 +48,7 @@ func (s *AuthService) GenerateToken(username, password string) (string, error) {
 		user.Id,
 	})
 
-	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	return token.SignedString([]byte(JWT_SECRET))
 }
 
 func (s *AuthService) ParseToken(accesstoken string) (int, error) { //Парс токена (получаем из токена id)
@@ -54,7 +56,7 @@ func (s *AuthService) ParseToken(accesstoken string) (int, error) { //Парс �
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("invalid signing method")
 		}
-		return []byte(os.Getenv("JWT_SECRET")), nil
+		return []byte(JWT_SECRET), nil
 	})
 	if err != nil {
 		return 0, err
@@ -72,5 +74,5 @@ func generatePasswordHash(password string) string { // Хэширование п
 	hash := sha1.New()
 	hash.Write([]byte(password))
 
-	return fmt.Sprintf("%x", hash.Sum([]byte(os.Getenv("SOLT"))))
+	return fmt.Sprintf("%x", hash.Sum([]byte(SOLT)))
 }

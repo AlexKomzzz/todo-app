@@ -1,35 +1,32 @@
 package handler
 
 import (
-	"context"
 	"todo-app/pkg/service"
 
 	_ "todo-app/docs"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v8"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger" // gin-swagger middleware
 )
 
 type Handler struct {
-	services    *service.Service
-	ctx         context.Context
-	redisClient *redis.Client
+	services *service.Service
 }
 
-func NewHandler(services *service.Service, ctx context.Context, redisClient *redis.Client) *Handler {
+func NewHandler(services *service.Service) *Handler {
 	return &Handler{
-		services:    services,
-		ctx:         ctx,
-		redisClient: redisClient,
+		services: services,
 	}
 }
 
 func (h *Handler) InitRoutes() *gin.Engine { // Инициализация групп функций мультиплексора
+
+	//gin.SetMode(gin.ReleaseMode) // Переключение сервера в режим Релиза из режима Отладка
+
 	mux := gin.New()
 
-	mux.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+	mux.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler)) // Для работы сваггера
 
 	auth := mux.Group("/auth") // Группа аутентификации
 	{

@@ -5,6 +5,9 @@ import (
 	"todo-app/pkg/repository"
 )
 
+// Создание mock интерфейсов в папке mocks
+//go:generate mockgen -source=service.go -destination=mocks/mock.go
+
 type Authorization interface {
 	CreateUser(user todo.User) (int, error)
 	GenerateToken(username, password string) (string, error)
@@ -27,10 +30,30 @@ type TodoItem interface {
 	Update(userId, itemId int, input todo.UpdateItemInput) error
 }
 
+type TodoListCach interface {
+	// Если listId использовать не нужно, передать -1
+	HGet(userId, listId int) (string, error)
+	// Если listId использовать не нужно, передать -1
+	HSet(userId, listId int, data string) error
+	HDelete(userId int) error
+	Delete(userId int) error
+}
+
+type TodoItemCach interface {
+	// Если listId или itemId использовать не нужно, передать -1 (что то одно)
+	HGet(userId, listId, itemId int) (string, error)
+	// Если listId или itemId использовать не нужно, передать -1 (что то одно)
+	HSet(userId, listId, itemId int, data string) error
+	HDelete(userId, listId int) error
+	Delete(userId int) error
+}
+
 type Service struct {
 	Authorization
 	TodoList
 	TodoItem
+	TodoListCach
+	TodoItemCach
 }
 
 func NewService(repos *repository.Repository) *Service {
@@ -38,5 +61,7 @@ func NewService(repos *repository.Repository) *Service {
 		Authorization: NewAuthService(repos.Authorization),
 		TodoList:      NewTodoListService(repos.TodoList),
 		TodoItem:      NewTodoItemService(repos.TodoItem, repos.TodoList),
+		TodoListCach:  NewTodoListServiceCach(repos.TodoListCach),
+		TodoItemCach:  NewTodoItemServiceCach(repos.TodoItemCach),
 	}
 }

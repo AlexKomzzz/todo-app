@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -9,7 +8,7 @@ import (
 	"todo-app/pkg/repository"
 	"todo-app/pkg/service"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
@@ -32,6 +31,8 @@ import (
 
 func main() {
 	logrus.SetFormatter(new(logrus.JSONFormatter)) // Установка логирования в формат JSON
+
+	context := &gin.Context{} // Контекст
 
 	if err := initConfig(); err != nil { //Инициализируем конфигурации
 		logrus.Fatalf("error initializing configs: %s", err.Error())
@@ -56,24 +57,20 @@ func main() {
 		return
 	}
 
-	ctx := context.Background() // Контекст
-
-	redisClient := redis.NewClient(&redis.Options{ // Подключение к серверу Redis
+	redisClient, err := repository.NewRedisCache(context, repository.ConfigRedis{ // Подключение к серверу Redis
 		Addr:     viper.GetString("redis.addr"),
 		Password: viper.GetString("redis.password"),
 		DB:       viper.GetInt("redis.db"),
 	})
-	status := redisClient.Ping(ctx)
-	logrus.Print("Connect status server Redis: ", status)
-	err = redisClient.FlushAll(ctx).Err() // Очистить Redis
+
 	if err != nil {
-		logrus.Fatalf("failed to flush Redis: %s", err.Error())
+		logrus.Fatalf("failed to initialize Redis: %s", err.Error())
 		return
 	}
 
-	repos := repository.NewRepository(db) // Создание зависимостей
+	repos := repository.NewRepository(db, context, redisClient) // Создание зависимостей
 	services := service.NewService(repos)
-	handlers := handler.NewHandler(services, ctx, redisClient)
+	handlers := handler.NewHandler(services)
 
 	rsv := handlers.InitRoutes()
 	go func() {
@@ -97,7 +94,8 @@ func main() {
 }
 
 func initConfig() error { //Инициализация конфигураций
-	viper.AddConfigPath("configs")
-	viper.SetConfigName("config")
+	//viper.AddConfigPath("configs")
+	//viper.SetConfigName("config")
+	viper.SetConfigFile("config.yml")
 	return viper.ReadInConfig()
 }
