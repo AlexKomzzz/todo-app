@@ -3,8 +3,8 @@ name: CI-CD_todo-app
 on:
   push: 
     branches: [ "master" ]
-    #tags:
-    #  - "*.*.*"
+    tags:
+      - "*.*.*"
 
 jobs:
   tests:
