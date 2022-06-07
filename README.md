@@ -1,5 +1,5 @@
 # REST API Для Создания TODO Списков на Go v. 1.18
-
+Оригинал взят с https://github.com/zhashkevych/todo-app.git
 
 ### Prerequisites
 - go 1.17
