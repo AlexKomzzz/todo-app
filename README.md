@@ -1,5 +1,7 @@
 # REST API Для Создания TODO Списков на Go v. 1.18
-
+Status of Last Deployment:<br>
+<img src="https://github.com/AlexKomzzz/todo-app/workflows/CI-CD_todo-app/badge.svg?branch=master"><br>
+Оригинал взят с https://github.com/zhashkevych/todo-app.git
 
 ### Prerequisites
 - go 1.17
@@ -10,10 +12,6 @@
 Create .env file in root directory and add following values:
 ```dotenv
 DB_PASSWORD= <your password>
-
-SOLT=<random string>
-
-JWT_SECRET=<random string>
 ```
 
 Create config.yml file in root directory and add following values:
