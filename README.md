@@ -1,4 +1,6 @@
 # REST API Для Создания TODO Списков на Go v. 1.18
+Status of Last Deployment:<br>
+<img src="https://github.com/AlexKomzzz/todo-app/workflows/CI-CD_todo-app/badge.svg?branch=master"><br>
 Оригинал взят с https://github.com/zhashkevych/todo-app.git
 
 ### Prerequisites
