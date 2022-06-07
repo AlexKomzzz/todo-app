@@ -1,0 +1,37 @@
+name: CI-CD_todo-app
+
+on:
+  push: 
+    branches: [ "master" ]
+    tags:
+      - "*.*.*"
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Git clone repo
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.18'
+    
+    - name: Installation go-version
+      run : go version
+    
+    #- name: Test
+    #  run: go test ./...
+  
+  deploy:
+    runs-on: ubuntu-latest
+    needs  : [tests]
+   
+    steps:
+    - name: Git clone repo
+      uses: actions/checkout@v3
+
+    - name: Install Docker compose
+      run : docker compose up --build -d

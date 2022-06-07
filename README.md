@@ -52,7 +52,6 @@ redis:
 
     $ docker run -it -dp 8000:8000 --network mynet --rm --name apidb -e DB_PASSWORD='qwerty' api
 
-
 # Docker compose
 
     $ docker compose up --build -d
