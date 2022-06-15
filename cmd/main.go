@@ -19,7 +19,7 @@ import (
 // http://localhost:8000/swagger/index.html#/
 
 // @title Todo App API
-// @version 1.0
+// @version 1.1
 // @description API Server for TodoList Application
 
 // @host localhost:8000

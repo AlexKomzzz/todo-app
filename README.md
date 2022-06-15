@@ -33,9 +33,6 @@ redis:
   db: "0"
 ```
 
-Запустить миграции
-
-    $ migrate -path ./schema -database 'postgres://postgres:qwerty@localhost:5432/postgres?sslmode=disable' up
 
 # Docker
 
@@ -54,3 +51,18 @@ redis:
 Запустить контейнер API:
 
     $ docker run -it -dp 8000:8000 --network mynet --rm --name apidb -e DB_PASSWORD='qwerty' api
+
+# Docker compose
+
+    $ docker compose up --build -d
+
+
+
+# Миграции
+
+    $ migrate -path ./schema -database 'postgres://postgres:qwerty@localhost:5432/postgres?sslmode=disable' up
+
+
+#  Использование swagger
+После запуска приложения перейдите по ссылке:
+ http://localhost:8000/swagger/index.html#/
