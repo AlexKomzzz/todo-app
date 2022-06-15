@@ -11,6 +11,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// @Summary Create todo Item
+// @Security ApiKeyAuth
+// @Tags items
+// @Description create todo Item
+// @ID create-item
+// @Accept json
+// @Produce json
+// @Param id path int true "List Id"
+// @Param input body todo.TodoItem true "Item info"
+// @Success 200 {integer} integer 1
+// @Failure 400,404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure default {object} errorResponse
+// @Router /api/lists/{id}/items [post]
 func (h *Handler) createItem(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
@@ -48,6 +62,19 @@ func (h *Handler) createItem(c *gin.Context) {
 	})
 }
 
+// @Summary Get All Items
+// @Security ApiKeyAuth
+// @Tags items
+// @Description get all Items
+// @ID get-all-items
+// @Accept  json
+// @Produce  json
+// @Param id path int true "List Id"
+// @Success 200 {object} []todo.TodoItem
+// @Failure 400,404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure default {object} errorResponse
+// @Router /api/lists/{id}/items [get]
 func (h *Handler) getAllItems(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
@@ -98,6 +125,19 @@ func (h *Handler) getAllItems(c *gin.Context) {
 	c.JSON(http.StatusOK, items)
 }
 
+// @Summary Get Item By Id
+// @Security ApiKeyAuth
+// @Tags items
+// @Description get Item by id
+// @ID get-item-by-id
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Item Id"
+// @Success 200 {object} todo.TodoItem
+// @Failure 400,404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure default {object} errorResponse
+// @Router /api/items/{id} [get]
 func (h *Handler) getItemById(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
@@ -148,6 +188,20 @@ func (h *Handler) getItemById(c *gin.Context) {
 	c.JSON(http.StatusOK, item)
 }
 
+// @Summary Update Item
+// @Security ApiKeyAuth
+// @Tags items
+// @Description update Item
+// @ID update-item
+// @Accept  json
+// @Produce  json
+// @Param id path int true "Item Id"
+// @Param input body todo.UpdateItemInput true "New item options"
+// @Success 200 {object} string
+// @Failure 400,404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure default {object} errorResponse
+// @Router /api/items/{id} [put]
 func (h *Handler) updateItem(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
@@ -182,6 +236,19 @@ func (h *Handler) updateItem(c *gin.Context) {
 	c.JSON(http.StatusOK, statusResponse{"ok"})
 }
 
+// @Summary Delete todo Item
+// @Security ApiKeyAuth
+// @Tags items
+// @Descriprion gelete item by id
+// @ID delete-item
+// @Accept json
+// @Produce json
+// @Param id path int true "Item Id"
+// @Success 200 {integer} string
+// @Failure 400,404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure default {object} errorResponse
+// @Router /api/items/{id} [delete]
 func (h *Handler) deleteItem(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
