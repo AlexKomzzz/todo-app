@@ -117,6 +117,19 @@ func (h *Handler) getAllLists(c *gin.Context) {
 
 }
 
+// @Summary Get List By Id
+// @Security ApiKeyAuth
+// @Tags lists
+// @Description get list by id
+// @ID get-list-by-id
+// @Accept  json
+// @Produce  json
+// @Param id path int true "List Id"
+// @Success 200 {object} todo.TodoList
+// @Failure 400,404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure default {object} errorResponse
+// @Router /api/lists/{id} [get]
 func (h *Handler) getListById(c *gin.Context) {
 	var list todo.TodoList
 
@@ -169,6 +182,20 @@ func (h *Handler) getListById(c *gin.Context) {
 	c.JSON(http.StatusOK, list)
 }
 
+// @Summary Update List
+// @Security ApiKeyAuth
+// @Tags lists
+// @Description update list
+// @ID update-list
+// @Accept  json
+// @Produce  json
+// @Param id path int true "List Id"
+// @Param input body todo.UpdateListInput true "New list options"
+// @Success 200 {object} todo.TodoList
+// @Failure 400,404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure default {object} errorResponse
+// @Router /api/lists/{id} [put]
 func (h *Handler) updateList(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {

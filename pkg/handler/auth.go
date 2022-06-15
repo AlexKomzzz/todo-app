@@ -44,7 +44,7 @@ type signInInput struct { // Структура для идентификаци�
 	Password string `json:"password" binding:"required"`
 }
 
-// @Summary SighIp
+// @Summary SignIn
 // @Tags auth
 // @Description login
 // @ID login

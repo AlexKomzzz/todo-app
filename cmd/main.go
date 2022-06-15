@@ -19,7 +19,7 @@ import (
 // http://localhost:8000/swagger/index.html#/
 
 // @title Todo App API
-// @version 1.0
+// @version 1.1
 // @description API Server for TodoList Application
 
 // @host localhost:8000
@@ -72,7 +72,12 @@ func main() {
 	services := service.NewService(repos)
 	handlers := handler.NewHandler(services)
 
-	rsv := handlers.InitRoutes()
+	rsv, err := handlers.InitRoutes()
+	if err != nil {
+		logrus.Fatalf("failed to initialize file in assets: %s", err.Error())
+		return
+	}
+
 	go func() {
 		if err := rsv.Run(viper.GetString("port")); err != nil {
 			logrus.Fatalf("Error run web serv")

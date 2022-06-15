@@ -61,3 +61,8 @@ redis:
 # Миграции
 
     $ migrate -path ./schema -database 'postgres://postgres:qwerty@localhost:5432/postgres?sslmode=disable' up
+
+
+#  Использование swagger
+После запуска приложения перейдите по ссылке:
+ http://localhost:8000/swagger/index.html#/
