@@ -101,8 +101,8 @@ func TestHandler_userIdentity(t *testing.T) {
 			r.ServeHTTP(w, req)
 
 			//Assert
-			assert.Equal(t, w.Code, testCase.expectedStatusCode)
-			assert.Equal(t, w.Body.String(), testCase.expectedResponseBody)
+			assert.Equal(t, testCase.expectedStatusCode, w.Code)
+			assert.Equal(t, testCase.expectedResponseBody, w.Body.String())
 		})
 	}
 }
@@ -149,7 +149,7 @@ func TestHandler_getUserId(t *testing.T) {
 				assert.NoError(t, err)
 			}
 
-			assert.Equal(t, id, test.id)
+			assert.Equal(t, test.id, id)
 		})
 	}
 }
