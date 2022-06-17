@@ -54,7 +54,7 @@ func TestHandler_createList(t *testing.T) {
 			prepare: func(f *field, userId int, list todo.TodoList) {
 				gomock.InOrder(
 					f.mockBehaviorCreate.EXPECT().Create(userId, list).Return(1, nil),
-					f.mockBehaviorHDel.EXPECT().HDelete(userId).Return(nil),
+					//f.mockBehaviorHDel.EXPECT().HDelete(userId).Return(nil),
 				)
 			},
 			expectedStatusCode:   200,
@@ -76,15 +76,13 @@ func TestHandler_createList(t *testing.T) {
 				errYes = true
 			}
 
-			assert.NoError(t, err)
-
 			f := field{
 				mockBehaviorCreate: mock_service.NewMockTodoList(c),
 				mockBehaviorHDel:   mock_service.NewMockTodoListCach(c),
 			}
 
 			if testCase.prepare != nil {
-				testCase.prepare(&f, testCase.userId, testCase.inputList)
+				testCase.prepare(&f, userId, testCase.inputList)
 			}
 
 			//testCase.prepare.field.mockBehaviorCreate(todolist, testCase.userId, testCase.inputList)
