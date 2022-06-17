@@ -21,9 +21,14 @@ func TestHandler_createList(t *testing.T) {
 		return ctx
 	}
 
-	type mockBehaviorCreate func(s *mock_service.MockTodoList, userId int, list todo.TodoList)
+	type field struct {
+		//mockBehaviorCreate func(s *mock_service.MockTodoList, userId int, list todo.TodoList)
+		//mockBehaviorHDel   func(s *mock_service.MockTodoListCach, userId int)
+		mockBehaviorCreate *mock_service.MockTodoList
+		mockBehaviorHDel   *mock_service.MockTodoListCach
+	}
 
-	type mockBehaviorHDel func(s *mock_service.MockTodoListCach, userId int)
+	//func(s *mock_service.MockTodoList) Create(userId int, list todo.TodoList)
 
 	testTable := []struct {
 		name                 string
@@ -33,25 +38,24 @@ func TestHandler_createList(t *testing.T) {
 		Id                   int
 		inputBody            string
 		inputList            todo.TodoList
-		mockBehaviorCreate   mockBehaviorCreate
-		mockBehaviorHDel     mockBehaviorHDel
+		prepare              func(f *field, userId int, list todo.TodoList)
 		expectedStatusCode   int // статус код ответа
 		expectedResponseBody string
 	}{
 		{
 			name:      "OK",
-			ctx:       getContext(666),
-			userId:    666,
+			ctx:       getContext(1),
+			userId:    1,
 			inputBody: `{"title":"test Bind", "description":"by testing BindJSON"}`,
 			inputList: todo.TodoList{
 				Title:       "test Create",
 				Description: "by testing func Create",
 			},
-			mockBehaviorCreate: func(s *mock_service.MockTodoList, userId int, list todo.TodoList) {
-				s.EXPECT().Create(userId, list).Return(1, nil)
-			},
-			mockBehaviorHDel: func(s *mock_service.MockTodoListCach, userId int) {
-				s.EXPECT().HDelete(userId).Return(nil)
+			prepare: func(f *field, userId int, list todo.TodoList) {
+				gomock.InOrder(
+					f.mockBehaviorCreate.EXPECT().Create(userId, list).Return(1, nil),
+					f.mockBehaviorHDel.EXPECT().HDelete(userId).Return(nil),
+				)
 			},
 			expectedStatusCode:   200,
 			expectedResponseBody: `{"id":1}`,
@@ -74,13 +78,19 @@ func TestHandler_createList(t *testing.T) {
 
 			assert.NoError(t, err)
 
-			todolist := mock_service.NewMockTodoList(c)
-			testCase.mockBehaviorCreate(todolist, testCase.userId, testCase.inputList)
+			f := field{
+				mockBehaviorCreate: mock_service.NewMockTodoList(c),
+				mockBehaviorHDel:   mock_service.NewMockTodoListCach(c),
+			}
 
-			todolistcach := mock_service.NewMockTodoListCach(c)
-			testCase.mockBehaviorHDel(todolistcach, testCase.userId)
+			if testCase.prepare != nil {
+				testCase.prepare(&f, testCase.userId, testCase.inputList)
+			}
 
-			services := &service.Service{TodoList: todolist, TodoListCach: todolistcach}
+			//testCase.prepare.field.mockBehaviorCreate(todolist, testCase.userId, testCase.inputList)
+			//testCase.mockBehaviorHDel(todolistcach, testCase.userId)
+
+			services := &service.Service{TodoList: f.mockBehaviorCreate, TodoListCach: f.mockBehaviorHDel}
 			handler := NewHandler(services)
 
 			// Test Server
