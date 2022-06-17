@@ -88,8 +88,102 @@ func TestHandler_signUp(t *testing.T) { //Тест функция метода h
 			r.ServeHTTP(w, req)
 
 			// Assert
-			assert.Equal(t, testCase.expectedStatusCode, w.Code)
-			assert.Equal(t, testCase.expectedResponseBody, w.Body.String())
+			assert.Equal(t, w.Code, testCase.expectedStatusCode)
+			assert.Equal(t, w.Body.String(), testCase.expectedResponseBody)
+		})
+	}
+}
+
+func TestHandler_signIn(t *testing.T) { //Тест функция метода handler`а sign-in
+
+	type mockBehavior func(s *mock_service.MockAuthorization, username string, password string) // функция mock`а
+
+	testTable := []struct { // Создание тестовой таблицы, содержит структуру из...
+		name         string // имя теста
+		inputBody    string // тело запроса
+		username     string
+		password     string
+		token        string
+		mockBehavior mockBehavior
+
+		expectedStatusCode   int    // статус код ответа
+		expectedResponseBody string // ожидаемое тело ответа.
+	}{
+		{ // позитивный сценарий
+			name:      "OK",
+			inputBody: `{"username":"test","password":"qwerty"}`,
+			username:  "test",
+			password:  "qwerty",
+			token:     "token",
+			mockBehavior: func(s *mock_service.MockAuthorization, username string, password string) {
+				s.EXPECT().GenerateToken(username, password).Return("token", nil)
+			},
+			expectedStatusCode:   200,
+			expectedResponseBody: `{"token":"token"}`,
+		},
+		{
+			name:      "Empty Field password",
+			inputBody: `{"username":"test"}`,
+			mockBehavior: func(s *mock_service.MockAuthorization, username string, password string) {
+			},
+			expectedStatusCode:   400,
+			expectedResponseBody: `{"message":"invalid input body: Key: 'signInInput.Password' Error:Field validation for 'Password' failed on the 'required' tag"}`,
+		},
+		{
+			name:      "Empty Field username",
+			inputBody: `{"password":"qwerty"}`,
+			mockBehavior: func(s *mock_service.MockAuthorization, username string, password string) {
+			},
+			expectedStatusCode:   400,
+			expectedResponseBody: `{"message":"invalid input body: Key: 'signInInput.Username' Error:Field validation for 'Username' failed on the 'required' tag"}`,
+		},
+		{
+			name: "Empty Fields",
+			mockBehavior: func(s *mock_service.MockAuthorization, username string, password string) {
+			},
+			expectedStatusCode:   400,
+			expectedResponseBody: `{"message":"invalid input body: EOF"}`,
+		},
+		{
+			name:      "Service Failure",
+			inputBody: `{"name":"Test", "username":"test","password":"qwerty"}`,
+			username:  "test",
+			password:  "qwerty",
+			mockBehavior: func(s *mock_service.MockAuthorization, username string, password string) {
+				s.EXPECT().GenerateToken(username, password).Return("", errors.New("token invalid"))
+			},
+			expectedStatusCode:   500,
+			expectedResponseBody: `{"message":"token invalid"}`,
+		},
+	}
+
+	for _, testCase := range testTable {
+		t.Run(testCase.name, func(t *testing.T) {
+			// Init Deps
+			c := gomock.NewController(t)
+			defer c.Finish()
+
+			auth := mock_service.NewMockAuthorization(c)
+			testCase.mockBehavior(auth, testCase.username, testCase.password)
+
+			services := &service.Service{Authorization: auth}
+			handler := NewHandler(services)
+
+			// Test Server
+			r := gin.New()
+			r.POST("/sign-in", handler.signIn)
+
+			// Test Request
+			w := httptest.NewRecorder() // Захватывает возвращенный HTTP-ответ
+			req := httptest.NewRequest("POST", "/sign-in",
+				bytes.NewBufferString(testCase.inputBody))
+
+			// Perform Request
+			r.ServeHTTP(w, req)
+
+			// Assert
+			assert.Equal(t, w.Code, testCase.expectedStatusCode)
+			assert.Equal(t, w.Body.String(), testCase.expectedResponseBody)
 		})
 	}
 }
