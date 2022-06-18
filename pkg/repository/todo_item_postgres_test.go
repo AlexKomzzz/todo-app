@@ -118,7 +118,7 @@ func TestTodoItemPostgres_Create(t *testing.T) {
 	}
 }
 
-/*func TestTodoItemPostgres_GetAll(t *testing.T) {
+func TestTodoItemPostgres_GetAll(t *testing.T) {
 	db, mock, err := sqlmock.Newx()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -128,8 +128,8 @@ func TestTodoItemPostgres_Create(t *testing.T) {
 	r := NewTodoItemPostgres(db)
 
 	type args struct {
-		listId int
 		userId int
+		listId int
 	}
 	tests := []struct {
 		name    string
@@ -138,7 +138,7 @@ func TestTodoItemPostgres_Create(t *testing.T) {
 		want    []todo.TodoItem
 		wantErr bool
 	}{
-		/*{
+		{
 			name: "Ok",
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id", "title", "description", "done"}).
@@ -146,7 +146,7 @@ func TestTodoItemPostgres_Create(t *testing.T) {
 					AddRow(2, "title2", "description2", false).
 					AddRow(3, "title3", "description3", false)
 
-				mock.ExpectQuery("SELECT (.+) FROM todo_items ti INNER JOIN lists_items li on (.+) INNER JOIN users_lists ul on (.+) WHERE (.+)").
+				mock.ExpectQuery("SELECT ti.id, ti.title, ti.description, ti.done FROM todo_items ti").
 					WithArgs(1, 1).WillReturnRows(rows)
 			},
 			input: args{
@@ -164,7 +164,7 @@ func TestTodoItemPostgres_Create(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id", "title", "description", "done"})
 
-				mock.ExpectQuery("SELECT (.+) FROM todo_items ti INNER JOIN lists_items li on (.+) INNER JOIN users_lists ul on (.+) WHERE (.+)").
+				mock.ExpectQuery("SELECT ti.id, ti.title, ti.description, ti.done FROM todo_items ti").
 					WithArgs(1, 1).WillReturnRows(rows)
 			},
 			input: args{
@@ -172,18 +172,30 @@ func TestTodoItemPostgres_Create(t *testing.T) {
 				userId: 1,
 			},
 		},
+		{
+			name: "Error Select",
+			mock: func() {
+				mock.ExpectQuery("SELECT ti.id, ti.title, ti.description, ti.done FROM todo_items ti").
+					WithArgs(1, 1).WillReturnError(errors.New("some error"))
+			},
+			input: args{
+				listId: 1,
+				userId: 1,
+			},
+			wantErr: true,
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.mock()
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mock()
 
-			got, err := r.GetAll(tt.input.userId, tt.input.listId)
-			if tt.wantErr {
+			got, err := r.GetAll(testCase.input.userId, testCase.input.listId)
+			if testCase.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
+				assert.Equal(t, testCase.want, got)
 			}
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
@@ -216,21 +228,21 @@ func TestTodoItemPostgres_GetById(t *testing.T) {
 				rows := sqlmock.NewRows([]string{"id", "title", "description", "done"}).
 					AddRow(1, "title1", "description1", true)
 
-				mock.ExpectQuery("SELECT (.+) FROM todo_items ti INNER JOIN lists_items li on (.+) INNER JOIN users_lists ul on (.+) WHERE (.+)").
+				mock.ExpectQuery("SELECT ti.id, ti.title, ti.description, ti.done FROM todo_items ti").
 					WithArgs(1, 1).WillReturnRows(rows)
 			},
 			input: args{
 				itemId: 1,
 				userId: 1,
 			},
-			want: todo.TodoItem{1, "title1", "description1", true},
+			want: todo.TodoItem{Id: 1, Title: "title1", Description: "description1", Done: true},
 		},
 		{
 			name: "Not Found",
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id", "title", "description", "done"})
 
-				mock.ExpectQuery("SELECT (.+) FROM todo_items ti INNER JOIN lists_items li on (.+) INNER JOIN users_lists ul on (.+) WHERE (.+)").
+				mock.ExpectQuery("SELECT ti.id, ti.title, ti.description, ti.done FROM todo_items ti").
 					WithArgs(404, 1).WillReturnRows(rows)
 			},
 			input: args{
@@ -241,23 +253,23 @@ func TestTodoItemPostgres_GetById(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.mock()
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mock()
 
-			got, err := r.GetById(tt.input.userId, tt.input.itemId)
-			if tt.wantErr {
+			got, err := r.GetById(testCase.input.userId, testCase.input.itemId)
+			if testCase.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
+				assert.Equal(t, testCase.want, got)
 			}
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
-}*/
+}
 
-/*func TestTodoItemPostgres_Delete(t *testing.T) {
+func TestTodoItemPostgres_Delete(t *testing.T) {
 	db, mock, err := sqlmock.Newx()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -279,7 +291,7 @@ func TestTodoItemPostgres_GetById(t *testing.T) {
 		{
 			name: "Ok",
 			mock: func() {
-				mock.ExpectExec("DELETE FROM todo_items ti USING lists_items li, users_lists ul WHERE (.+)").
+				mock.ExpectExec("DELETE FROM todo_items ti USING lists_items li, user_lists").
 					WithArgs(1, 1).WillReturnResult(sqlmock.NewResult(0, 1))
 			},
 			input: args{
@@ -290,8 +302,8 @@ func TestTodoItemPostgres_GetById(t *testing.T) {
 		{
 			name: "Not Found",
 			mock: func() {
-				mock.ExpectExec("DELETE FROM todo_items ti USING lists_items li, users_lists ul WHERE (.+)").
-					WithArgs(1, 404).WillReturnError(sql.ErrNoRows)
+				mock.ExpectExec("DELETE FROM todo_items ti").
+					WithArgs(1, 404).WillReturnError(errors.New("not found table"))
 			},
 			input: args{
 				itemId: 404,
@@ -301,12 +313,12 @@ func TestTodoItemPostgres_GetById(t *testing.T) {
 		},
 	}
 
-	for _, tt := range testTable {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.mock()
+	for _, testCase := range testTable {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mock()
 
-			err := r.Delete(tt.input.userId, tt.input.itemId)
-			if tt.wantErr {
+			err := r.Delete(testCase.input.userId, testCase.input.itemId)
+			if testCase.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
@@ -314,9 +326,9 @@ func TestTodoItemPostgres_GetById(t *testing.T) {
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
-}*/
+}
 
-/*func TestTodoItemPostgres_Update(t *testing.T) {
+func TestTodoItemPostgres_Update(t *testing.T) {
 	db, mock, err := sqlmock.Newx()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -326,8 +338,8 @@ func TestTodoItemPostgres_GetById(t *testing.T) {
 	r := NewTodoItemPostgres(db)
 
 	type args struct {
-		itemId int
 		userId int
+		itemId int
 		input  todo.UpdateItemInput
 	}
 	tests := []struct {
@@ -339,7 +351,7 @@ func TestTodoItemPostgres_GetById(t *testing.T) {
 		{
 			name: "OK_AllFields",
 			mock: func() {
-				mock.ExpectExec("UPDATE todo_items ti SET (.+) FROM lists_items li, users_lists ul WHERE (.+)").
+				mock.ExpectExec("UPDATE todo_items ti SET").
 					WithArgs("new title", "new description", true, 1, 1).WillReturnResult(sqlmock.NewResult(0, 1))
 			},
 			input: args{
@@ -355,7 +367,7 @@ func TestTodoItemPostgres_GetById(t *testing.T) {
 		{
 			name: "OK_WithoutDone",
 			mock: func() {
-				mock.ExpectExec("UPDATE todo_items ti SET (.+) FROM lists_items li, users_lists ul WHERE (.+)").
+				mock.ExpectExec("UPDATE todo_items ti SET").
 					WithArgs("new title", "new description", 1, 1).WillReturnResult(sqlmock.NewResult(0, 1))
 			},
 			input: args{
@@ -370,7 +382,7 @@ func TestTodoItemPostgres_GetById(t *testing.T) {
 		{
 			name: "OK_WithoutDoneAndDescription",
 			mock: func() {
-				mock.ExpectExec("UPDATE todo_items ti SET (.+) FROM lists_items li, users_lists ul WHERE (.+)").
+				mock.ExpectExec("UPDATE todo_items ti SET").
 					WithArgs("new title", 1, 1).WillReturnResult(sqlmock.NewResult(0, 1))
 			},
 			input: args{
@@ -384,7 +396,7 @@ func TestTodoItemPostgres_GetById(t *testing.T) {
 		{
 			name: "OK_NoInputFields",
 			mock: func() {
-				mock.ExpectExec("UPDATE todo_items ti SET FROM lists_items li, users_lists ul WHERE (.+)").
+				mock.ExpectExec("UPDATE todo_items ti SET").
 					WithArgs(1, 1).WillReturnResult(sqlmock.NewResult(0, 1))
 			},
 			input: args{
@@ -392,14 +404,89 @@ func TestTodoItemPostgres_GetById(t *testing.T) {
 				userId: 1,
 			},
 		},
+		{
+			name: "OK_WithoutDoneAndTitle",
+			mock: func() {
+				mock.ExpectExec("UPDATE todo_items ti SET").
+					WithArgs("new description", 1, 1).WillReturnResult(sqlmock.NewResult(0, 1))
+			},
+			input: args{
+				itemId: 1,
+				userId: 1,
+				input: todo.UpdateItemInput{
+					Description: stringPointer("new description"),
+				},
+			},
+		},
+		{
+			name: "OK_WithoutDescriptionAndTitle",
+			mock: func() {
+				mock.ExpectExec("UPDATE todo_items ti SET").
+					WithArgs(true, 55, 55).WillReturnResult(sqlmock.NewResult(0, 1))
+			},
+			input: args{
+				itemId: 55,
+				userId: 55,
+				input: todo.UpdateItemInput{
+					Done: boolPointer(true),
+				},
+			},
+		},
+		{
+			name: "OK_WithoutDescription",
+			mock: func() {
+				mock.ExpectExec("UPDATE todo_items ti SET").
+					WithArgs("new title", true, 1, 1).WillReturnResult(sqlmock.NewResult(0, 1))
+			},
+			input: args{
+				itemId: 1,
+				userId: 1,
+				input: todo.UpdateItemInput{
+					Title: stringPointer("new title"),
+					Done:  boolPointer(true),
+				},
+			},
+		},
+		{
+			name: "OK_WithoutTitle",
+			mock: func() {
+				mock.ExpectExec("UPDATE todo_items ti SET").
+					WithArgs("new description", true, 1, 1).WillReturnResult(sqlmock.NewResult(0, 1))
+			},
+			input: args{
+				itemId: 1,
+				userId: 1,
+				input: todo.UpdateItemInput{
+					Description: stringPointer("new description"),
+					Done:        boolPointer(true),
+				},
+			},
+		},
+		{
+			name: "OK_ErrorExec",
+			mock: func() {
+				mock.ExpectExec("UPDATE todo_items ti SET").
+					WithArgs("new title", "new description", true, 1, 1).WillReturnError(errors.New("error update"))
+			},
+			input: args{
+				itemId: 1,
+				userId: 1,
+				input: todo.UpdateItemInput{
+					Title:       stringPointer("new title"),
+					Description: stringPointer("new description"),
+					Done:        boolPointer(true),
+				},
+			},
+			wantErr: true,
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.mock()
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mock()
 
-			err := r.Update(tt.input.userId, tt.input.itemId, tt.input.input)
-			if tt.wantErr {
+			err := r.Update(testCase.input.userId, testCase.input.itemId, testCase.input.input)
+			if testCase.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
@@ -415,4 +502,4 @@ func stringPointer(s string) *string {
 
 func boolPointer(b bool) *bool {
 	return &b
-}*/
+}
