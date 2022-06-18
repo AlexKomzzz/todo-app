@@ -57,12 +57,32 @@ func TestTodoItemPostgres_Create(t *testing.T) {
 			},
 		},
 		{
-			name: "Empty Field",
+			name: "Empty Field Title",
 			args: args{
 				listId: 1,
 				item: todo.TodoItem{
 					Title:       "",
 					Description: "test description",
+				},
+			},
+			mockBehavior: func(args args, id int) {
+				mock.ExpectBegin() // Откроем транзакцию
+
+				rows := sqlmock.NewRows([]string{"id"}).AddRow(id).RowError(1, errors.New("some error"))
+				mock.ExpectQuery("INSERT INTO todo_items").
+					WithArgs(args.item.Title, args.item.Description).WillReturnRows(rows)
+
+				mock.ExpectRollback()
+			},
+			wantErr: true,
+		},
+		{
+			name: "Empty Field Description",
+			args: args{
+				listId: 1,
+				item: todo.TodoItem{
+					Title:       "test title",
+					Description: "",
 				},
 			},
 			mockBehavior: func(args args, id int) {
@@ -97,6 +117,43 @@ func TestTodoItemPostgres_Create(t *testing.T) {
 					WillReturnError(errors.New("some error"))
 
 				mock.ExpectRollback()
+			},
+			wantErr: true,
+		},
+		{
+			name: "ErrorBegin",
+			args: args{
+				listId: 1,
+				item: todo.TodoItem{
+					Title:       "test title",
+					Description: "test description",
+				},
+			},
+			mockBehavior: func(args args, id int) {
+				mock.ExpectBegin().WillReturnError(errors.New("Error Begin"))
+			},
+			wantErr: true,
+		},
+		{
+			name: "ErrorCommit",
+			args: args{
+				listId: 1,
+				item: todo.TodoItem{
+					Title:       "test title",
+					Description: "test description",
+				},
+			},
+			mockBehavior: func(args args, id int) {
+				mock.ExpectBegin() // Откроем транзакцию
+
+				rows := sqlmock.NewRows([]string{"id"}).AddRow(id)
+				mock.ExpectQuery("INSERT INTO todo_items").
+					WithArgs(args.item.Title, args.item.Description).WillReturnRows(rows)
+
+				mock.ExpectExec("INSERT INTO lists_items").WithArgs(args.listId, id).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectCommit().WillReturnError(errors.New("Error Commit"))
 			},
 			wantErr: true,
 		},
