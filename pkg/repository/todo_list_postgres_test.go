@@ -9,7 +9,7 @@ import (
 	sqlmock "github.com/zhashkevych/go-sqlxmock"
 )
 
-func TestTodoList_Create(t *testing.T) {
+func TestTodoListPostgres_Create(t *testing.T) {
 	db, mock, err := sqlmock.Newx()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -174,7 +174,7 @@ func TestTodoList_Create(t *testing.T) {
 	}
 }
 
-func TestTodoList_GetAll(t *testing.T) {
+func TestTodoListPostgres_GetAll(t *testing.T) {
 	db, mock, err := sqlmock.Newx()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -241,6 +241,88 @@ func TestTodoList_GetAll(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, testCase.lists, got)
+			}
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestTodoLisrPostgres_GetById(t *testing.T) {
+	db, mock, err := sqlmock.Newx()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	r := NewTodoListPostgres(db)
+
+	type args struct {
+		userId int
+		listId int
+	}
+
+	type mockBehavior func(userId, listId int)
+
+	testTable := []struct {
+		name         string
+		mockBehavior mockBehavior
+		input        args
+		want         todo.TodoList
+		wantErr      bool
+	}{
+		{
+			name: "Ok",
+			mockBehavior: func(userId, listId int) {
+				rows := sqlmock.NewRows([]string{"id", "title", "description"}).
+					AddRow(1, "title1", "description1")
+
+				mock.ExpectQuery("SELECT tl.id, tl.title, tl.description FROM").
+					WithArgs(userId, listId).WillReturnRows(rows)
+			},
+			input: args{
+				listId: 1,
+				userId: 1,
+			},
+			want: todo.TodoList{Id: 1, Title: "title1", Description: "description1"},
+		},
+		{
+			name: "Not Found",
+			mockBehavior: func(userId, listId int) {
+				rows := sqlmock.NewRows([]string{"id", "title", "description"})
+
+				mock.ExpectQuery("SELECT tl.id, tl.title, tl.description FROM").
+					WithArgs(userId, listId).WillReturnRows(rows)
+			},
+			input: args{
+				listId: 404,
+				userId: 1,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Error Select",
+			mockBehavior: func(userId, listId int) {
+				mock.ExpectQuery("SELECT tl.id, tl.title, tl.description FROM").
+					WithArgs(userId, listId).WillReturnError(errors.New("Error SELECT"))
+			},
+			input: args{
+				listId: 500,
+				userId: 1,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range testTable {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockBehavior(testCase.input.userId, testCase.input.listId)
+
+			got, err := r.GetById(testCase.input.userId, testCase.input.listId)
+			if testCase.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, testCase.want, got)
 			}
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
