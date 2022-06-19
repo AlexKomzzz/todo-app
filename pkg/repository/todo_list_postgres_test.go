@@ -328,3 +328,201 @@ func TestTodoLisrPostgres_GetById(t *testing.T) {
 		})
 	}
 }
+
+func TestTodoListPostgres_Delete(t *testing.T) {
+	db, mock, err := sqlmock.Newx()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	r := NewTodoListPostgres(db)
+
+	type args struct {
+		listId int
+		userId int
+	}
+
+	type mockBehavior func(userId, listId int)
+
+	testTable := []struct {
+		name         string
+		mockBehavior mockBehavior
+		input        args
+		wantErr      bool
+	}{
+		{
+			name: "Ok",
+			mockBehavior: func(userId, listId int) {
+				mock.ExpectExec("DELETE FROM todo_lists tl USING user_lists ul").
+					WithArgs(userId, listId).WillReturnResult(sqlmock.NewResult(0, 1))
+			},
+			input: args{
+				listId: 5,
+				userId: 5,
+			},
+		},
+		{
+			name: "Not Found",
+			mockBehavior: func(userId, listId int) {
+				mock.ExpectExec("DELETE FROM todo_lists tl USING user_lists ul").
+					WithArgs(userId, listId).WillReturnError(errors.New("not found table"))
+			},
+			input: args{
+				listId: 404,
+				userId: 1,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range testTable {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockBehavior(testCase.input.userId, testCase.input.listId)
+
+			err := r.DeleteById(testCase.input.userId, testCase.input.listId)
+			if testCase.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestTodoListPostgres_Update(t *testing.T) {
+	db, mock, err := sqlmock.Newx()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	r := NewTodoListPostgres(db)
+
+	type args struct {
+		userId     int
+		listId     int
+		list_input todo.UpdateListInput
+	}
+
+	type mockBehavior func(list todo.UpdateListInput, userId, listId int, want_list todo.TodoList)
+
+	testTable := []struct {
+		name         string
+		mockBehavior mockBehavior
+		input        args
+		want         todo.TodoList
+		wantErr      bool
+	}{
+		{
+			name: "OK_AllFields",
+			mockBehavior: func(list todo.UpdateListInput, userId, listId int, want_list todo.TodoList) {
+				rows := sqlmock.NewRows([]string{"id", "title", "description"}).AddRow(want_list.Id, want_list.Title, want_list.Description)
+				mock.ExpectQuery("UPDATE todo_lists tl SET").
+					WithArgs(list.Title, list.Description, userId, listId).WillReturnRows(rows)
+			},
+			input: args{
+				listId: 99,
+				userId: 88,
+				list_input: todo.UpdateListInput{
+					Title:       stringPointer("new title"),
+					Description: stringPointer("new description"),
+				},
+			},
+			want: todo.TodoList{
+				Id:          99,
+				Title:       "new title",
+				Description: "new description",
+			},
+		},
+		{
+			name: "OK_WithoutDescription",
+			mockBehavior: func(list todo.UpdateListInput, userId, listId int, want_list todo.TodoList) {
+				rows := sqlmock.NewRows([]string{"id", "title", "description"}).AddRow(want_list.Id, want_list.Title, want_list.Description)
+				mock.ExpectQuery("UPDATE todo_lists tl SET").
+					WithArgs(list.Title, userId, listId).WillReturnRows(rows)
+			},
+			input: args{
+				listId: 99,
+				userId: 88,
+				list_input: todo.UpdateListInput{
+					Title: stringPointer("new title"),
+				},
+			},
+			want: todo.TodoList{
+				Id:          99,
+				Title:       "new title",
+				Description: "old description",
+			},
+		},
+		{
+			name: "OK_WithoutTitle",
+			mockBehavior: func(list todo.UpdateListInput, userId, listId int, want_list todo.TodoList) {
+				rows := sqlmock.NewRows([]string{"id", "title", "description"}).AddRow(want_list.Id, want_list.Title, want_list.Description)
+				mock.ExpectQuery("UPDATE todo_lists tl SET").
+					WithArgs(list.Description, userId, listId).WillReturnRows(rows)
+			},
+			input: args{
+				listId: 99,
+				userId: 88,
+				list_input: todo.UpdateListInput{
+					Description: stringPointer("new description"),
+				},
+			},
+			want: todo.TodoList{
+				Id:          99,
+				Title:       "old title",
+				Description: "new description",
+			},
+		},
+		{
+			name: "OK_NoInputFields",
+			mockBehavior: func(list todo.UpdateListInput, userId, listId int, want_list todo.TodoList) {
+				rows := sqlmock.NewRows([]string{"id", "title", "description"}).AddRow(want_list.Id, want_list.Title, want_list.Description)
+				mock.ExpectQuery("UPDATE todo_lists tl SET").
+					WithArgs(userId, listId).WillReturnRows(rows)
+			},
+			input: args{
+				listId: 99,
+				userId: 88,
+			},
+			want: todo.TodoList{
+				Id:          99,
+				Title:       "old title",
+				Description: "old description",
+			},
+		},
+		{
+			name: "Error QueryRow",
+			mockBehavior: func(list todo.UpdateListInput, userId, listId int, want_list todo.TodoList) {
+				mock.ExpectQuery("UPDATE todo_lists tl SET").
+					WithArgs(list.Title, list.Description, userId, listId).WillReturnError(errors.New("Error QueryRow"))
+			},
+			input: args{
+				listId: 99,
+				userId: 88,
+				list_input: todo.UpdateListInput{
+					Title:       stringPointer("new title"),
+					Description: stringPointer("new description"),
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range testTable {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockBehavior(testCase.input.list_input, testCase.input.userId, testCase.input.listId, testCase.want)
+
+			got, err := r.UpdateById(testCase.input.userId, testCase.input.listId, testCase.input.list_input)
+			if testCase.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, testCase.want, got)
+			}
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
