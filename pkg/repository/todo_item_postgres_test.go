@@ -57,12 +57,32 @@ func TestTodoItemPostgres_Create(t *testing.T) {
 			},
 		},
 		{
-			name: "Empty Field",
+			name: "Empty Field Title",
 			args: args{
 				listId: 1,
 				item: todo.TodoItem{
 					Title:       "",
 					Description: "test description",
+				},
+			},
+			mockBehavior: func(args args, id int) {
+				mock.ExpectBegin() // Откроем транзакцию
+
+				rows := sqlmock.NewRows([]string{"id"}).AddRow(id).RowError(1, errors.New("some error"))
+				mock.ExpectQuery("INSERT INTO todo_items").
+					WithArgs(args.item.Title, args.item.Description).WillReturnRows(rows)
+
+				mock.ExpectRollback()
+			},
+			wantErr: true,
+		},
+		{
+			name: "Empty Field Description",
+			args: args{
+				listId: 1,
+				item: todo.TodoItem{
+					Title:       "test title",
+					Description: "",
 				},
 			},
 			mockBehavior: func(args args, id int) {
@@ -97,6 +117,43 @@ func TestTodoItemPostgres_Create(t *testing.T) {
 					WillReturnError(errors.New("some error"))
 
 				mock.ExpectRollback()
+			},
+			wantErr: true,
+		},
+		{
+			name: "ErrorBegin",
+			args: args{
+				listId: 1,
+				item: todo.TodoItem{
+					Title:       "test title",
+					Description: "test description",
+				},
+			},
+			mockBehavior: func(args args, id int) {
+				mock.ExpectBegin().WillReturnError(errors.New("Error Begin"))
+			},
+			wantErr: true,
+		},
+		{
+			name: "ErrorCommit",
+			args: args{
+				listId: 1,
+				item: todo.TodoItem{
+					Title:       "test title",
+					Description: "test description",
+				},
+			},
+			mockBehavior: func(args args, id int) {
+				mock.ExpectBegin() // Откроем транзакцию
+
+				rows := sqlmock.NewRows([]string{"id"}).AddRow(id)
+				mock.ExpectQuery("INSERT INTO todo_items").
+					WithArgs(args.item.Title, args.item.Description).WillReturnRows(rows)
+
+				mock.ExpectExec("INSERT INTO lists_items").WithArgs(args.listId, id).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectCommit().WillReturnError(errors.New("Error Commit"))
 			},
 			wantErr: true,
 		},
@@ -338,9 +395,9 @@ func TestTodoItemPostgres_Update(t *testing.T) {
 	r := NewTodoItemPostgres(db)
 
 	type args struct {
-		userId int
-		itemId int
-		input  todo.UpdateItemInput
+		userId     int
+		itemId     int
+		item_input todo.UpdateItemInput
 	}
 	tests := []struct {
 		name    string
@@ -357,7 +414,7 @@ func TestTodoItemPostgres_Update(t *testing.T) {
 			input: args{
 				itemId: 1,
 				userId: 1,
-				input: todo.UpdateItemInput{
+				item_input: todo.UpdateItemInput{
 					Title:       stringPointer("new title"),
 					Description: stringPointer("new description"),
 					Done:        boolPointer(true),
@@ -373,7 +430,7 @@ func TestTodoItemPostgres_Update(t *testing.T) {
 			input: args{
 				itemId: 1,
 				userId: 1,
-				input: todo.UpdateItemInput{
+				item_input: todo.UpdateItemInput{
 					Title:       stringPointer("new title"),
 					Description: stringPointer("new description"),
 				},
@@ -388,7 +445,7 @@ func TestTodoItemPostgres_Update(t *testing.T) {
 			input: args{
 				itemId: 1,
 				userId: 1,
-				input: todo.UpdateItemInput{
+				item_input: todo.UpdateItemInput{
 					Title: stringPointer("new title"),
 				},
 			},
@@ -413,7 +470,7 @@ func TestTodoItemPostgres_Update(t *testing.T) {
 			input: args{
 				itemId: 1,
 				userId: 1,
-				input: todo.UpdateItemInput{
+				item_input: todo.UpdateItemInput{
 					Description: stringPointer("new description"),
 				},
 			},
@@ -427,7 +484,7 @@ func TestTodoItemPostgres_Update(t *testing.T) {
 			input: args{
 				itemId: 55,
 				userId: 55,
-				input: todo.UpdateItemInput{
+				item_input: todo.UpdateItemInput{
 					Done: boolPointer(true),
 				},
 			},
@@ -441,7 +498,7 @@ func TestTodoItemPostgres_Update(t *testing.T) {
 			input: args{
 				itemId: 1,
 				userId: 1,
-				input: todo.UpdateItemInput{
+				item_input: todo.UpdateItemInput{
 					Title: stringPointer("new title"),
 					Done:  boolPointer(true),
 				},
@@ -456,7 +513,7 @@ func TestTodoItemPostgres_Update(t *testing.T) {
 			input: args{
 				itemId: 1,
 				userId: 1,
-				input: todo.UpdateItemInput{
+				item_input: todo.UpdateItemInput{
 					Description: stringPointer("new description"),
 					Done:        boolPointer(true),
 				},
@@ -471,7 +528,7 @@ func TestTodoItemPostgres_Update(t *testing.T) {
 			input: args{
 				itemId: 1,
 				userId: 1,
-				input: todo.UpdateItemInput{
+				item_input: todo.UpdateItemInput{
 					Title:       stringPointer("new title"),
 					Description: stringPointer("new description"),
 					Done:        boolPointer(true),
@@ -485,7 +542,7 @@ func TestTodoItemPostgres_Update(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.mock()
 
-			err := r.Update(testCase.input.userId, testCase.input.itemId, testCase.input.input)
+			err := r.Update(testCase.input.userId, testCase.input.itemId, testCase.input.item_input)
 			if testCase.wantErr {
 				assert.Error(t, err)
 			} else {
