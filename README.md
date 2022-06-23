@@ -1,22 +1,30 @@
 # REST API Для Создания TODO Списков на Go v. 1.18
 Status of Last Deployment:<br>
 <img src="https://github.com/AlexKomzzz/todo-app/workflows/CI-CD_todo-app/badge.svg?branch=master"><br>
-Оригинал взят с https://github.com/zhashkevych/todo-app.git
 
-### Prerequisites
-- go 1.17
+### Предпосылки
+- go 1.18 
+- [Gin](https://github.com/gin-gonic/gin) (веб-фреймворк)
+- PostgreSQL (БД: [sqlx](https://github.com/jmoiron/sqlx) и [migrate](https://github.com/golang-migrate/migrate))
+- [Redis](https://github.com/go-redis/redis) (кэширование данных)
 - docker & docker-compose
-- [golangci-lint](https://github.com/golangci/golangci-lint) (<i>optional</i>, used to run code checks)
+- GitHub Action (состоит из трех шагов: тестирование, коннект с удаленным хостом и деплой)
 - [swag](https://github.com/swaggo/swag) (<i>optional</i>, used to re-generate swagger documentation)
+- Unit-тестирование (исп. [gomock](https://github.com/golang/mock), 
+[go-sqlmock](https://github.com/DATA-DOG/go-sqlmock), [redismock](https://github.com/go-redis/redismock))
+- Использование HTML-template для ошибки 404 при несуществующем URL (с применением [go:embed](https://pkg.go.dev/embed))
+- Использование [JWT](https://github.com/golang-jwt/jwt) для аутентификации и авторизации
 
-Create .env file in root directory and add following values:
+## Start use
+
+Создайте файл .env в корневом каталоге со следующим значением:
 ```dotenv
 DB_PASSWORD= <your password>
 ```
 
-Create config.yml file in root directory and add following values:
+Создайте файл config.yml в корневом каталоге и добавьте следующие значения:
 ```dotenv
-*******EXEMPLED********
+*******ПРИМЕР********
 port: ":8000"
 
 db:
@@ -54,12 +62,14 @@ redis:
 
 
 # Docker compose
+Запустить приложение одной командой:
 
     $ docker compose up --build -d
 
 
 
 # Миграции
+Использовать миграции для создания таблиц в БД (применить свои настройки подключения к БД):
 
     $ migrate -path ./schema -database 'postgres://postgres:qwerty@localhost:5432/postgres?sslmode=disable' up
 
@@ -67,3 +77,9 @@ redis:
 #  Использование swagger
 После запуска приложения перейдите по ссылке:
  http://localhost:8000/swagger/index.html#/
+
+
+
+#
+#
+ Выполнено на основании: https://github.com/zhashkevych/todo-app.git
