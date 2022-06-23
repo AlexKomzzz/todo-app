@@ -42,7 +42,7 @@ func TestTodoListRedis_HGet(t *testing.T) {
 				userId: 1,
 				listId: 2,
 			},
-			want: "`{\"id\":1, \"title\":\"test title\", \"description\":\"test description\", \"done\":true}`",
+			want: "`{\"id\":1, \"title\":\"test title\", \"description\":\"test description\"}`",
 		},
 		{
 			name: "Not needed listId",
