@@ -20,35 +20,35 @@ func NewTodoItemRedis(context *gin.Context, redisClient *redis.Client) *TodoItem
 	}
 }
 
-// Если listId использовать не нужно, передать -1
+// Если listId или itemId использовать не нужно, передать -1 (что то одно)
 func (r *TodoItemRedis) HGet(userId, listId, itemId int) (string, error) {
 	var val string
 	var err error
 
-	if itemId < 0 && listId >= 0 {
+	if itemId <= 0 && listId > 0 {
 		val, err = r.redisClient.HGet(r.context, fmt.Sprintf("user:%d", userId), fmt.Sprintf("items:list%d", listId)).Result()
-	} else if itemId >= 0 && listId < 0 {
+	} else if itemId > 0 && listId <= 0 {
 		val, err = r.redisClient.HGet(r.context, fmt.Sprintf("user:%d", userId), fmt.Sprintf("item:%d", itemId)).Result()
 	} else {
-		err = errors.New("invalide func HSet")
+		err = errors.New("invalide input params func HSet")
 		return "", err
 	}
 
 	return val, err
 }
 
-// Если listId использовать не нужно, передать -1
+// Если listId или itemId использовать не нужно, передать -1 (что то одно)
 func (r *TodoItemRedis) HSet(userId, listId, itemId int, data string) error {
 
 	//Используем команду конвейер (Pipeline) для одновременного выполнения команд записи в кэш и установление тайм-аута ключа
 	pipe := r.redisClient.Pipeline() // создание конвейра
 
-	if itemId < 0 && listId >= 0 {
+	if itemId <= 0 && listId > 0 {
 		pipe.HSetNX(r.context, fmt.Sprintf("user:%d", userId), fmt.Sprintf("items:list%d", listId), data) // Кешируем lists в Redis
-	} else if itemId >= 0 && listId < 0 {
+	} else if itemId > 0 && listId <= 0 {
 		pipe.HSetNX(r.context, fmt.Sprintf("user:%d", userId), fmt.Sprintf("item:%d", itemId), data)
 	} else {
-		err := errors.New("invalide func HSet")
+		err := errors.New("invalide input params func HSet")
 		return err
 	}
 	pipe.Expire(r.context, fmt.Sprintf("user:%d", userId), duration) // Устанавливаем тайм-айт для ключа
