@@ -1,8 +1,8 @@
 package handler
 
-/*
 import (
 	"bytes"
+	"errors"
 	"net/http/httptest"
 	"testing"
 	"todo-app"
@@ -14,52 +14,122 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-/*func TestHandler_createList(t *testing.T) {
-
-	var getContext = func(userId interface{}) *gin.Context { // функция передачи userId в контекст, для использования в getUserId
-		ctx := &gin.Context{}
-		ctx.Set(userCtx, userId)
-		return ctx
-	}
+func TestHandler_createList(t *testing.T) {
 
 	type field struct {
-		//mockBehaviorCreate func(s *mock_service.MockTodoList, userId int, list todo.TodoList)
-		//mockBehaviorHDel   func(s *mock_service.MockTodoListCach, userId int)
 		mockBehaviorCreate *mock_service.MockTodoList
 		mockBehaviorHDel   *mock_service.MockTodoListCach
 	}
 
-	//func(s *mock_service.MockTodoList) Create(userId int, list todo.TodoList)
-
 	testTable := []struct {
 		name                 string
-		ctx                  *gin.Context
+		CtxNil               bool
 		shouidFail           bool
 		userId               int
 		Id                   int
 		inputBody            string
 		inputList            todo.TodoList
-		prepare              func(f *field, userId int, list todo.TodoList)
+		prepare              func(f *field, userId int, list todo.TodoList, Id int)
 		expectedStatusCode   int // статус код ответа
 		expectedResponseBody string
 	}{
 		{
 			name:      "OK",
-			ctx:       getContext(1),
 			userId:    2,
-			inputBody: `{"title":"test Bind", "description":"by testing BindJSON"}`,
+			Id:        5,
+			inputBody: `{"title":"test", "description":"by testing"}`,
 			inputList: todo.TodoList{
-				Title:       "test Create",
-				Description: "by testing func Create",
+				Title:       "test",
+				Description: "by testing",
 			},
-			prepare: func(f *field, userId int, list todo.TodoList) {
+			prepare: func(f *field, userId int, list todo.TodoList, Id int) {
 				gomock.InOrder(
-					f.mockBehaviorCreate.EXPECT().Create(userId, list).Return(1, nil),
-					//f.mockBehaviorHDel.EXPECT().HDelete(userId).Return(nil),
+					f.mockBehaviorCreate.EXPECT().Create(userId, list).Return(Id, nil),
+					f.mockBehaviorHDel.EXPECT().HDelete(userId).Return(nil),
 				)
 			},
 			expectedStatusCode:   200,
-			expectedResponseBody: `{"id":1}`,
+			expectedResponseBody: `{"id":5}`,
+		},
+		{
+			name:      "Error getUserId",
+			CtxNil:    true,
+			userId:    2,
+			inputBody: `{"title":"test", "description":"by testing"}`,
+			inputList: todo.TodoList{
+				Title:       "test",
+				Description: "by testing",
+			},
+			prepare:              func(f *field, userId int, list todo.TodoList, Id int) {},
+			expectedStatusCode:   500,
+			expectedResponseBody: "{\"message\":\"user id not found\"}",
+		},
+		{
+			name:                 "Empty Fields",
+			userId:               2,
+			inputBody:            `{}`,
+			inputList:            todo.TodoList{},
+			prepare:              func(f *field, userId int, list todo.TodoList, Id int) {},
+			expectedStatusCode:   400,
+			expectedResponseBody: `{"message":"Key: 'TodoList.Title' Error:Field validation for 'Title' failed on the 'required' tag"}`,
+		},
+		{
+			name:                 "Empty Field Title",
+			userId:               2,
+			inputBody:            `{"description":"by testing"}`,
+			inputList:            todo.TodoList{},
+			prepare:              func(f *field, userId int, list todo.TodoList, Id int) {},
+			expectedStatusCode:   400,
+			expectedResponseBody: `{"message":"Key: 'TodoList.Title' Error:Field validation for 'Title' failed on the 'required' tag"}`,
+		},
+		{
+			name:      "OK Empty Description",
+			userId:    2,
+			Id:        8,
+			inputBody: `{"title":"test"}`,
+			inputList: todo.TodoList{
+				Title: "test",
+			},
+			prepare: func(f *field, userId int, list todo.TodoList, Id int) {
+				gomock.InOrder(
+					f.mockBehaviorCreate.EXPECT().Create(userId, list).Return(Id, nil),
+					f.mockBehaviorHDel.EXPECT().HDelete(userId).Return(nil),
+				)
+			},
+			expectedStatusCode:   200,
+			expectedResponseBody: `{"id":8}`,
+		},
+		{
+			name:      "Error Create",
+			userId:    2,
+			inputBody: `{"title":"test", "description":"by testing"}`,
+			inputList: todo.TodoList{
+				Title:       "test",
+				Description: "by testing",
+			},
+			prepare: func(f *field, userId int, list todo.TodoList, Id int) {
+				f.mockBehaviorCreate.EXPECT().Create(userId, list).Return(1, errors.New("Error Create"))
+			},
+			expectedStatusCode:   500,
+			expectedResponseBody: `{"message":"Error Create"}`,
+		},
+		{
+			name:      "Error HDel",
+			userId:    2,
+			Id:        5,
+			inputBody: `{"title":"test", "description":"by testing"}`,
+			inputList: todo.TodoList{
+				Title:       "test",
+				Description: "by testing",
+			},
+			prepare: func(f *field, userId int, list todo.TodoList, Id int) {
+				gomock.InOrder(
+					f.mockBehaviorCreate.EXPECT().Create(userId, list).Return(Id, nil),
+					f.mockBehaviorHDel.EXPECT().HDelete(userId).Return(errors.New("Error HDel")),
+				)
+			},
+			expectedStatusCode:   500,
+			expectedResponseBody: `{"message":"Error HDel"}`,
 		},
 	}
 
@@ -69,21 +139,13 @@ import (
 			c := gomock.NewController(t)
 			defer c.Finish()
 
-			/*userId, err := getUserId(testCase.ctx)
-
-			errYes := false
-
-			if err != nil {
-				errYes = true
-			}
-
 			f := field{
 				mockBehaviorCreate: mock_service.NewMockTodoList(c),
 				mockBehaviorHDel:   mock_service.NewMockTodoListCach(c),
 			}
 
 			if testCase.prepare != nil {
-				testCase.prepare(&f, testCase.userId, testCase.inputList)
+				testCase.prepare(&f, testCase.userId, testCase.inputList, testCase.Id)
 			}
 
 			//testCase.prepare.field.mockBehaviorCreate(todolist, testCase.userId, testCase.inputList)
@@ -94,9 +156,11 @@ import (
 
 			// Test Server
 			r := gin.New()
-			ctx := &gin.Context{}
-			ctx.Set(userCtx, 2)
-			r.POST("/lists", handler.createList)
+			if testCase.CtxNil {
+				r.POST("/lists", handler.createList)
+			} else {
+				r.POST("/lists", func(c *gin.Context) { c.Set(userCtx, testCase.userId) }, handler.createList)
+			}
 
 			// Test Request
 			w := httptest.NewRecorder()
@@ -107,10 +171,10 @@ import (
 
 			// Assert
 			assert.Equal(t, testCase.expectedStatusCode, w.Code)
-			assert.Equal(t, "", w.Body.String())
+			assert.Equal(t, testCase.expectedResponseBody, w.Body.String())
 			//assert.Equal(t, testCase.userId, userId)
 			//assert.Equal(t, testCase.shouidFail, errYes)
 
 		})
 	}
-}*/
+}

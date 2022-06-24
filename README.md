@@ -1,4 +1,4 @@
-# REST API Для Создания TODO Списков на Go v. 1.18
+# REST API - TODO List на Go v. 1.18
 Status of Last Deployment:<br>
 <img src="https://github.com/AlexKomzzz/todo-app/workflows/CI-CD_todo-app/badge.svg?branch=master"><br>
 
@@ -20,25 +20,6 @@ Status of Last Deployment:<br>
 Создайте файл .env в корневом каталоге со следующим значением:
 ```dotenv
 DB_PASSWORD= <your password>
-```
-
-Создайте файл config.yml в корневом каталоге и добавьте следующие значения:
-```dotenv
-*******ПРИМЕР********
-port: ":8000"
-
-db:
-  username: "postgres"
-  password: "qwerty"
-  host: "localhost" or "db"
-  port: "5432"
-  dbname: "postgres"
-  sslmode: "disable"
-
-redis:
-  addr: "localhost:6379" or "redis:6379"
-  password: ""
-  db: "0"
 ```
 
 
