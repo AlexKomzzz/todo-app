@@ -40,7 +40,7 @@ func NewRedisCache(context *gin.Context, cfg ConfigRedis) (*redis.Client, error)
 
 	logrus.Print("Connect status server Redis: ", status)
 
-	redisClient.FlushAll(context) // Очистить Redis
+	// redisClient.FlushAll(context) // Очистить Redis
 
 	err := status.Err()
 
