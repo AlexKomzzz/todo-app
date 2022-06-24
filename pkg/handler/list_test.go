@@ -471,3 +471,274 @@ func TestHandler_getListById(t *testing.T) {
 		})
 	}
 }
+
+func TestHandler_updateList(t *testing.T) {
+
+	type field struct {
+		mockBehaviorH          *mock_service.MockTodoListCach
+		mockBehaviorUpdateById *mock_service.MockTodoList
+	}
+
+	testTable := []struct {
+		name                 string
+		CtxNil               bool
+		ErrId                bool
+		Id                   int
+		userId               int
+		inputBody            string
+		inputUpdate          todo.UpdateListInput
+		ReturnUpdate         todo.TodoList
+		prepare              func(f *field, userId, Id int, inputUpdate todo.UpdateListInput, ReturnUpdate todo.TodoList)
+		expectedStatusCode   int
+		expectedResponseBody string
+	}{
+		{
+			name:      "OK",
+			Id:        4,
+			userId:    5,
+			inputBody: `{"title":"test4", "description":"by testing4"}`,
+			inputUpdate: todo.UpdateListInput{
+				Title:       stringPointers("test4"),
+				Description: stringPointers("by testing4"),
+			},
+			ReturnUpdate: todo.TodoList{
+				Id:          4,
+				Title:       "test4",
+				Description: "by testing4",
+			},
+			prepare: func(f *field, userId, Id int, inputUpdate todo.UpdateListInput, ReturnUpdate todo.TodoList) {
+				gomock.InOrder(
+					f.mockBehaviorUpdateById.EXPECT().UpdateById(userId, Id, inputUpdate).Return(ReturnUpdate, nil),
+					f.mockBehaviorH.EXPECT().Delete(userId).Return(nil),
+				)
+			},
+			expectedStatusCode:   200,
+			expectedResponseBody: "{\"id\":4,\"title\":\"test4\",\"description\":\"by testing4\"}",
+		},
+		{
+			name:                 "Error getUserId",
+			CtxNil:               true,
+			prepare:              func(f *field, userId, Id int, inputUpdate todo.UpdateListInput, ReturnUpdate todo.TodoList) {},
+			expectedStatusCode:   500,
+			expectedResponseBody: "{\"message\":\"user id not found\"}",
+		},
+		{
+			name:                 "Error Atoi Id",
+			ErrId:                true,
+			prepare:              func(f *field, userId, Id int, inputUpdate todo.UpdateListInput, ReturnUpdate todo.TodoList) {},
+			expectedStatusCode:   400,
+			expectedResponseBody: "{\"message\":\"invalid type list id\"}",
+		},
+		{
+			name:      "Empty Fields",
+			Id:        4,
+			userId:    5,
+			inputBody: `{}`,
+			prepare: func(f *field, userId, Id int, inputUpdate todo.UpdateListInput, ReturnUpdate todo.TodoList) {
+				f.mockBehaviorUpdateById.EXPECT().UpdateById(userId, Id, inputUpdate).Return(todo.TodoList{}, errors.New("update structure has no values"))
+			},
+			expectedStatusCode:   500,
+			expectedResponseBody: `{"message":"update structure has no values"}`,
+		},
+		{
+			name:      "Error UpdateById",
+			Id:        4,
+			userId:    5,
+			inputBody: `{"title":"test4", "description":"by testing4"}`,
+			inputUpdate: todo.UpdateListInput{
+				Title:       stringPointers("test4"),
+				Description: stringPointers("by testing4"),
+			},
+			prepare: func(f *field, userId, Id int, inputUpdate todo.UpdateListInput, ReturnUpdate todo.TodoList) {
+				f.mockBehaviorUpdateById.EXPECT().UpdateById(userId, Id, inputUpdate).Return(todo.TodoList{}, errors.New("Error UpdateById"))
+			},
+			expectedStatusCode:   500,
+			expectedResponseBody: `{"message":"Error UpdateById"}`,
+		},
+		{
+			name:      "Error Delete",
+			Id:        4,
+			userId:    5,
+			inputBody: `{"title":"test4", "description":"by testing4"}`,
+			inputUpdate: todo.UpdateListInput{
+				Title:       stringPointers("test4"),
+				Description: stringPointers("by testing4"),
+			},
+			ReturnUpdate: todo.TodoList{
+				Id:          4,
+				Title:       "test4",
+				Description: "by testing4",
+			},
+			prepare: func(f *field, userId, Id int, inputUpdate todo.UpdateListInput, ReturnUpdate todo.TodoList) {
+				gomock.InOrder(
+					f.mockBehaviorUpdateById.EXPECT().UpdateById(userId, Id, inputUpdate).Return(ReturnUpdate, nil),
+					f.mockBehaviorH.EXPECT().Delete(userId).Return(errors.New("Error Delete")),
+				)
+			},
+			expectedStatusCode:   500,
+			expectedResponseBody: `{"message":"Error Delete"}`,
+		},
+	}
+
+	for _, testCase := range testTable {
+		t.Run(testCase.name, func(t *testing.T) {
+			// Init Deps
+			c := gomock.NewController(t)
+			defer c.Finish()
+
+			f := field{
+				mockBehaviorH:          mock_service.NewMockTodoListCach(c),
+				mockBehaviorUpdateById: mock_service.NewMockTodoList(c),
+			}
+
+			if testCase.prepare != nil {
+				testCase.prepare(&f, testCase.userId, testCase.Id, testCase.inputUpdate, testCase.ReturnUpdate)
+			}
+
+			services := &service.Service{TodoListCach: f.mockBehaviorH, TodoList: f.mockBehaviorUpdateById}
+			handler := NewHandler(services)
+
+			// Test Server
+			r := gin.New()
+			if testCase.CtxNil {
+				r.PUT("/lists/:id", handler.updateList)
+			} else {
+				r.PUT("/lists/:id", func(c *gin.Context) { c.Set(userCtx, testCase.userId) }, handler.updateList)
+			}
+
+			// Test Request
+			var req *http.Request
+			w := httptest.NewRecorder()
+			if testCase.ErrId {
+				req = httptest.NewRequest("PUT", "/lists/err", nil)
+			} else {
+				req = httptest.NewRequest("PUT", fmt.Sprintf("/lists/%d", testCase.Id), bytes.NewBufferString(testCase.inputBody))
+			}
+
+			// Perform Request
+			r.ServeHTTP(w, req)
+
+			// Assert
+			assert.Equal(t, testCase.expectedStatusCode, w.Code)
+			assert.Equal(t, testCase.expectedResponseBody, w.Body.String())
+		})
+	}
+}
+
+func TestHandler_deleteList(t *testing.T) {
+
+	type field struct {
+		mockBehaviorH          *mock_service.MockTodoListCach
+		mockBehaviorDeleteById *mock_service.MockTodoList
+	}
+
+	testTable := []struct {
+		name                 string
+		CtxNil               bool
+		ErrId                bool
+		Id                   int
+		userId               int
+		prepare              func(f *field, userId, Id int)
+		expectedStatusCode   int
+		expectedResponseBody string
+	}{
+		{
+			name:   "OK",
+			Id:     4,
+			userId: 5,
+			prepare: func(f *field, userId, Id int) {
+				gomock.InOrder(
+					f.mockBehaviorDeleteById.EXPECT().DeleteById(userId, Id).Return(nil),
+					f.mockBehaviorH.EXPECT().Delete(userId).Return(nil),
+				)
+			},
+			expectedStatusCode:   200,
+			expectedResponseBody: "{\"Ok\":\"deleted list by id: 4\"}",
+		},
+		{
+			name:                 "Error getUserId",
+			CtxNil:               true,
+			prepare:              func(f *field, userId, Id int) {},
+			expectedStatusCode:   500,
+			expectedResponseBody: "{\"message\":\"user id not found\"}",
+		},
+		{
+			name:                 "Error Atoi Id",
+			ErrId:                true,
+			prepare:              func(f *field, userId, Id int) {},
+			expectedStatusCode:   400,
+			expectedResponseBody: "{\"message\":\"invalid type list id\"}",
+		},
+		{
+			name:   "Error DeleteById",
+			Id:     4,
+			userId: 5,
+			prepare: func(f *field, userId, Id int) {
+				f.mockBehaviorDeleteById.EXPECT().DeleteById(userId, Id).Return(errors.New("Error DeleteById"))
+			},
+			expectedStatusCode:   500,
+			expectedResponseBody: "{\"message\":\"Error DeleteById\"}",
+		},
+		{
+			name:   "Error Delete",
+			Id:     4,
+			userId: 5,
+			prepare: func(f *field, userId, Id int) {
+				gomock.InOrder(
+					f.mockBehaviorDeleteById.EXPECT().DeleteById(userId, Id).Return(nil),
+					f.mockBehaviorH.EXPECT().Delete(userId).Return(errors.New("Error Delete")),
+				)
+			},
+			expectedStatusCode:   500,
+			expectedResponseBody: "{\"message\":\"Error Delete\"}",
+		},
+	}
+
+	for _, testCase := range testTable {
+		t.Run(testCase.name, func(t *testing.T) {
+			// Init Deps
+			c := gomock.NewController(t)
+			defer c.Finish()
+
+			f := field{
+				mockBehaviorH:          mock_service.NewMockTodoListCach(c),
+				mockBehaviorDeleteById: mock_service.NewMockTodoList(c),
+			}
+
+			if testCase.prepare != nil {
+				testCase.prepare(&f, testCase.userId, testCase.Id)
+			}
+
+			services := &service.Service{TodoListCach: f.mockBehaviorH, TodoList: f.mockBehaviorDeleteById}
+			handler := NewHandler(services)
+
+			// Test Server
+			r := gin.New()
+			if testCase.CtxNil {
+				r.DELETE("/lists/:id", handler.deleteList)
+			} else {
+				r.DELETE("/lists/:id", func(c *gin.Context) { c.Set(userCtx, testCase.userId) }, handler.deleteList)
+			}
+
+			// Test Request
+			var req *http.Request
+			w := httptest.NewRecorder()
+			if testCase.ErrId {
+				req = httptest.NewRequest("DELETE", "/lists/err", nil)
+			} else {
+				req = httptest.NewRequest("DELETE", fmt.Sprintf("/lists/%d", testCase.Id), nil)
+			}
+
+			// Perform Request
+			r.ServeHTTP(w, req)
+
+			// Assert
+			assert.Equal(t, testCase.expectedStatusCode, w.Code)
+			assert.Equal(t, testCase.expectedResponseBody, w.Body.String())
+		})
+	}
+}
+
+func stringPointers(s string) *string {
+	return &s
+}

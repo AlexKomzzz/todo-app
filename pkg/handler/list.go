@@ -201,7 +201,7 @@ func (h *Handler) getListById(c *gin.Context) {
 func (h *Handler) updateList(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, "ivalid user id")
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -249,7 +249,7 @@ func (h *Handler) updateList(c *gin.Context) {
 func (h *Handler) deleteList(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, "ivalid user id")
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
