@@ -77,6 +77,7 @@ func (h *Handler) getAllLists(c *gin.Context) {
 
 	userId, err := getUserId(c) // Определяем ID юзера по токену
 	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -136,7 +137,7 @@ func (h *Handler) getListById(c *gin.Context) {
 
 	userId, err := getUserId(c)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, "ivalid user id")
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
