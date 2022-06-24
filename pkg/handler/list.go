@@ -28,6 +28,7 @@ import (
 func (h *Handler) createList(c *gin.Context) {
 	userId, err := getUserId(c) // Определяем ID юзера по токену
 	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
