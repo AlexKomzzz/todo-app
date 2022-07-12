@@ -2,6 +2,10 @@
 Status of Last Deployment:<br>
 <img src="https://github.com/AlexKomzzz/todo-app/workflows/CI-CD_todo-app/badge.svg?branch=master"><br>
 
+#
+#
+ Выполнено на основании: https://github.com/zhashkevych/todo-app.git, в частности бизнес-логика
+
 ### Предпосылки
 - go 1.18 
 - [Gin](https://github.com/gin-gonic/gin) (веб-фреймворк)
@@ -60,8 +64,4 @@ DB_PASSWORD= <your password>
 
 
 
-
-#
-#
- Выполнено на основании: https://github.com/zhashkevych/todo-app.git
 
