@@ -3,7 +3,6 @@ Status of Last Deployment:<br>
 <img src="https://github.com/AlexKomzzz/todo-app/workflows/CI-CD_todo-app/badge.svg?branch=master"><br>
 
 #
-#
  Выполнено на основании: https://github.com/zhashkevych/todo-app.git, в частности бизнес-логика
 
 ### Предпосылки
